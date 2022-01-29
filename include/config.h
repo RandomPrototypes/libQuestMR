@@ -1,0 +1,5 @@
+#pragma once
+
+#define LIBQUESTMR_USE_OPENCV
+
+#define QUEST_CALIB_DEFAULT_PORT 25671
