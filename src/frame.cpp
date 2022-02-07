@@ -1,20 +1,25 @@
 /*
-Copyright (C) 2019-present, Facebook, Inc.
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; version 2 of the License.
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-You should have received a copy of the GNU General Public License along
-with this program; if not, write to the Free Software Foundation, Inc.,
-51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-*/
+ * Based on https://github.com/facebookincubator/obs-plugins
+ *
+ * Copyright (C) 2019-present, Facebook, Inc.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 2 of the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 
 #include "frame.h"
 #include "log.h"
 #include <string.h>
+
+namespace libQuestMR
+{
 
 FrameCollection::FrameCollection()
 	: m_hasError(false)
@@ -129,10 +134,10 @@ void FrameCollection::AddData(const uint8_t* data, uint32_t len)
 
 			auto current_time = std::chrono::system_clock::now();
 			auto seconds_since_epoch = std::chrono::duration<double>(current_time.time_since_epoch()).count();
-			frame->localTimestamp = (unsigned long long)(seconds_since_epoch*1000);
+            frame->localTimestamp = (uint64_t)(seconds_since_epoch*1000);
 
 			if(timestampFile != NULL)
-				fprintf(timestampFile, "%llu\n", frame->localTimestamp);
+                fprintf(timestampFile, "%llu\n", static_cast<unsigned long long>(frame->localTimestamp));
 
 			if (!m_firstFrameTimeSet)
 			{
@@ -175,4 +180,6 @@ std::shared_ptr<Frame> FrameCollection::PopFrame()
 	{
 		return std::shared_ptr<Frame>(nullptr);
 	}
+}
+
 }

@@ -20,6 +20,8 @@ extern "C" {
 
 #include "config.h"
 
+#include "BufferedSocket.h"
+
 #ifdef LIBQUESTMR_USE_OPENCV
 #include <opencv2/opencv.hpp>
 #endif
@@ -38,10 +40,15 @@ extern "C" {
 //"192.168.10.105"
 #define OM_DEFAULT_PORT 28734
 
+namespace libQuestMR
+{
+
 inline int WSAGetLastError()
 {
     return errno;
 }
+
+uint64_t getTimestampMs();
 
 class QuestVideoSource
 {
@@ -62,6 +69,21 @@ public:
     void Disconnect();
 
     SOCKET m_connectSocket = INVALID_SOCKET;
+    std::string m_ipaddr = OM_DEFAULT_IP_ADDRESS;
+	uint32_t m_port = OM_DEFAULT_PORT;
+};
+
+class QuestVideoSourceBufferedSocket : public QuestVideoSource
+{
+public:
+	virtual ~QuestVideoSourceBufferedSocket();
+	virtual bool isValid();
+	virtual ssize_t recv(char *buf, size_t bufferSize);
+
+    void Connect();
+    void Disconnect();
+
+    BufferedSocket m_connectSocket;
     std::string m_ipaddr = OM_DEFAULT_IP_ADDRESS;
 	uint32_t m_port = OM_DEFAULT_PORT;
 };
@@ -107,7 +129,7 @@ public:
 #ifdef LIBQUESTMR_USE_OPENCV
 	cv::Mat mostRecentImg;
 #endif
-	unsigned long long mostRecentTimestamp;
+    uint64_t mostRecentTimestamp;
 
 	QuestVideoSource *videoSource = NULL;
 	FILE *recordedTimestampFile = NULL;
@@ -134,10 +156,14 @@ public:
 		return m_height;
 	}
 
-	cv::Mat getMostRecentImg(unsigned long long *timestamp = NULL)
+#ifdef LIBQUESTMR_USE_OPENCV
+    cv::Mat getMostRecentImg(uint64_t *timestamp = NULL)
 	{
 		if(timestamp != NULL)
 			*timestamp = mostRecentTimestamp;
 		return mostRecentImg;
 	}
+#endif
 };
+
+}

@@ -15,9 +15,10 @@
 namespace libQuestMR
 {
 
+const char QuestCommunicator::messageStartID[4] = {(char)0x6b, (char)0xa7, (char)0x83, (char)0x52};
+
 QuestCommunicator::QuestCommunicator()
 {
-    sock = -1;
 }
 
 void QuestCommunicator::onError(std::string errorMsg)
@@ -27,33 +28,12 @@ void QuestCommunicator::onError(std::string errorMsg)
 
 bool QuestCommunicator::connect(std::string address, int port)
 {
-    sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (sock < 0) {
-        onError("socket creation failed.");
-        sock = -1;
-        return false;
-    }
-
-    struct sockaddr_in sad;
-    memset(&sad, 0, sizeof(sad));
-    sad.sin_family = AF_INET;
-    sad.sin_addr.s_addr = inet_addr(address.c_str());
-    sad.sin_port = htons(port);
-    
-    if (::connect(sock, (struct sockaddr *) &sad, sizeof(sad)) < 0)
-    {
-        onError("Failed to connect.");
-        close(sock);
-        sock = -1;
-        return false;
-    }
-
-    return true;
+    return sock.connect(address, port);
 }
 
 bool QuestCommunicator::readHeader(char *header, bool loopUntilFound)
 {
-    if(readNBytes(header, 12) != 12)
+    if(sock.readNBytes(header, 12) != 12)
         return false;
     if(!loopUntilFound)
         return findMessageStart(header, 12) == 0;
@@ -62,7 +42,7 @@ bool QuestCommunicator::readHeader(char *header, bool loopUntilFound)
     {
         for(int i = 0; i < 4; i++)
             header[i] = header[i+8];
-        if(readNBytes(header+4, 8) != 8)
+        if(sock.readNBytes(header+4, 8) != 8)
             return false;
     }
     int offset = findMessageStart(header, 12);
@@ -70,7 +50,7 @@ bool QuestCommunicator::readHeader(char *header, bool loopUntilFound)
         return true;
     for(int i = 0; i < 12-offset; i++)
         header[i] = header[i+offset];
-    return (readNBytes(header+offset, 12-offset) == 12-offset);
+    return (sock.readNBytes(header+offset, 12-offset) == 12-offset);
 }
 
 void QuestCommunicator::createHeader(char *buffer, unsigned int type, unsigned int length)
@@ -86,14 +66,18 @@ void QuestCommunicator::createHeader(char *buffer, unsigned int type, unsigned i
 //and then convert it to UInt32 using ntohl to stay valid for any platform
 uint32_t QuestCommunicator::toUInt32(char *data)
 {
+    DataPacket dataPkt;
     char tmp[4] = {data[3], data[2], data[1], data[0]};
-    return ntohl(*(uint32_t*)tmp);
+    return DataPacket::convertToUInt32((unsigned char*)tmp);
+    //return ntohl(*(uint32_t*)tmp);
 }
 
 void QuestCommunicator::fromUInt32(char *data, uint32_t val)
 {
-    uint32_t val_n = htonl(val);
-    char *tmp = (char*)&val_n;
+    char tmp[4];
+    DataPacket::convertUInt32ToBytes(val, (unsigned char*)tmp);
+    //uint32_t val_n = htonl(val);
+    //char *tmp = (char*)&val_n;
     data[0] = tmp[3];
     data[1] = tmp[2];
     data[2] = tmp[1];
@@ -106,7 +90,7 @@ bool QuestCommunicator::readMessage(QuestCommunicatorMessage *output)
     if(!readHeader(header, false))
     {
         onError("Can not read header");
-        close(sock);
+        sock.disconnect();
         return false;
     }
     output->type = toUInt32(header+4);
@@ -114,7 +98,7 @@ bool QuestCommunicator::readMessage(QuestCommunicatorMessage *output)
     printf("%u bytes to read\n", length);
     output->data.resize(length+1);
     output->data[length] = 0;
-    if(readNBytes(&(output->data[0]), length) != length)
+    if(sock.readNBytes(&(output->data[0]), length) != length)
     {
         onError("Can not read message content");
         return false;
@@ -134,45 +118,20 @@ bool QuestCommunicator::sendMessage(const QuestCommunicatorMessage& msg)
     return ret == totalSize;
 }
 
-int QuestCommunicator::readNBytes(char *buffer, int N)
-{
-    int nbRead = 0;
-    while(nbRead < N)
-    {
-        int len = readRawData(buffer + nbRead, std::min(N-nbRead, MAX_READ_SIZE));
-        if(len <= 0)
-            return nbRead;
-        nbRead += len;
-    }
-    return N;
-}
-
-int QuestCommunicator::readRawData(char *buffer, int bufferSize) 
-{
-    int sizeRead = recv(sock, buffer, bufferSize, 0);
-    if(sizeRead <= 0)
-    {
-        onError("recv() failed or connection closed prematurely");
-        close(sock);
-    }
-    return sizeRead;
-}
-
 int QuestCommunicator::sendRawData(char *data, int length) 
 {
-    int sizeSent = send(sock, data, length, 0);
+    int sizeSent = sock.sendData(data, length);
     if(sizeSent != length)
     {
         onError("send() sent a different number of bytes than expected");
-        close(sock);
+        sock.disconnect();
     }
     return sizeSent;
 }
 
 void QuestCommunicator::disconnect()
 {
-    close(sock);
-    sock = -1;
+    sock.disconnect();
 }
 
 int QuestCommunicator::findMessageStart(char *buffer, int length, int start)

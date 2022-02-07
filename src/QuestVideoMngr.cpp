@@ -1,6 +1,32 @@
+/*
+ * Based on https://github.com/facebookincubator/obs-plugins
+ *
+ * Copyright (C) 2019-present, Facebook, Inc.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 2 of the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
 #include "QuestVideoMngr.h"
 #include <fcntl.h>
 #include "log.h"
+
+namespace libQuestMR
+{
+
+uint64_t getTimestampMs()
+{
+    auto currentTime = std::chrono::system_clock::now().time_since_epoch();
+    return std::chrono::duration_cast<std::chrono::milliseconds>(currentTime).count();
+}
+
 
 std::string GetAvErrorString(int errNum)
 {
@@ -151,8 +177,11 @@ void QuestVideoMngr::VideoTickImpl(bool skipOldFrames)
             //	break;
 
             auto frame = m_frameCollection.PopFrame();
-            if(recordedTimestampFile != NULL)
-                fscanf(recordedTimestampFile, "%llu\n", &(frame->localTimestamp));
+            if(recordedTimestampFile != NULL){
+                unsigned long long tmp;
+                fscanf(recordedTimestampFile, "%llu\n", &tmp);
+                frame->localTimestamp = tmp;
+            }
 
             //auto current_time = std::chrono::system_clock::now();
             //auto seconds_since_epoch = std::chrono::duration<double>(current_time.time_since_epoch()).count();
@@ -518,4 +547,38 @@ void QuestVideoSourceFile::close()
     if(file != NULL)
         fclose(file);
     file = NULL;
+}
+
+
+
+
+
+
+
+QuestVideoSourceBufferedSocket::~QuestVideoSourceBufferedSocket()
+{
+    Disconnect();
+}
+
+
+void QuestVideoSourceBufferedSocket::Connect()
+{
+    m_connectSocket.connect(m_ipaddr, m_port);
+}
+
+ssize_t QuestVideoSourceBufferedSocket::recv(char *buf, size_t bufferSize)
+{
+    return m_connectSocket.readData(buf, bufferSize);
+}
+
+bool QuestVideoSourceBufferedSocket::isValid()
+{
+    return m_connectSocket.isConnected();
+}
+
+void QuestVideoSourceBufferedSocket::Disconnect()
+{
+    m_connectSocket.disconnect();
+}
+
 }

@@ -6,6 +6,7 @@
 #include <mutex>
 #include "config.h"
 #include "QuestFrameData.h"
+#include "BufferedSocket.h"
 
 namespace libQuestMR
 {
@@ -20,8 +21,8 @@ public:
 class QuestCommunicator
 {
 public:
-    int sock;
-    const char messageStartID[4] = {(char)0x6b, (char)0xa7, (char)0x83, (char)0x52};
+    BufferedSocket sock;
+    static const char messageStartID[4];
 
 
     QuestCommunicator();
@@ -50,15 +51,6 @@ public:
     //Return false in case of communication error
     bool sendMessage(const QuestCommunicatorMessage& msg);
 
-    //Read N bytes from the socket.
-    //Block until N bytes have been read unless there is communication error.
-    int readNBytes(char *buffer, int N);
-
-    //Read data from the socket.
-    //Will close the socket in case of communcation error and return negative number
-    //Returns the number of byte read in case of success
-    int readRawData(char *buffer, int bufferSize);
-
     //Send data to the socket
     //Will close the socket if the number of bytes sent is incorrect
     //Returns the number of bytes sent
@@ -69,7 +61,7 @@ public:
 
     //search for the message start "magic value": 0x6ba78352
     //mainly for debug purpose, you do not need it if the protocol is implemented correctly
-    int findMessageStart(char *buffer, int length, int start = 0);
+    static int findMessageStart(char *buffer, int length, int start = 0);
 };
 
 class QuestCommunicatorThreadData

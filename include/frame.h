@@ -21,6 +21,9 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <mutex>
 #include <cassert>
 
+namespace libQuestMR
+{
+
 struct FrameHeader
 {
 	uint32_t Magic;
@@ -40,7 +43,7 @@ struct Frame
 	};
 	PayloadType m_type;
 	double m_secondsSinceEpoch;
-	unsigned long long localTimestamp;
+    uint64_t localTimestamp;
 	std::vector<uint8_t> m_payload;
 };
 
@@ -100,3 +103,5 @@ private:
 	FILE *recordingFile;
 	FILE *timestampFile;
 };
+
+}
