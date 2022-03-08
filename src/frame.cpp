@@ -14,8 +14,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "frame.h"
-#include "log.h"
+#include <libQuestMR/frame.h>
+#include <libQuestMR/log.h>
 #include <string.h>
 
 namespace libQuestMR

@@ -1,4 +1,4 @@
-#include "QuestStringUtil.h"
+#include <libQuestMR/QuestStringUtil.h>
 
 namespace libQuestMR
 {

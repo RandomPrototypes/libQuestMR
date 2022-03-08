@@ -1,15 +1,7 @@
-#include "QuestCommunicator.h"
+#include <libQuestMR/QuestCommunicator.h>
 #include <unistd.h>
 #include <string.h>
 #include <sstream>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-
-
-#define MAX_READ_SIZE 2048
 
 
 namespace libQuestMR

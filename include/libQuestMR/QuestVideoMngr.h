@@ -26,27 +26,14 @@ extern "C" {
 #include <opencv2/opencv.hpp>
 #endif
 
-#define SOCKET int
-#define INVALID_SOCKET          ((SOCKET)(~0))
-#define SOCKET_ERROR            (-1)
-#define WSAEWOULDBLOCK          EWOULDBLOCK 
-#define closesocket close
-#define ioctlsocket ioctl
-
 #define OM_DEFAULT_WIDTH (1920*2)
 #define OM_DEFAULT_HEIGHT 1080
 #define OM_DEFAULT_AUDIO_SAMPLERATE 48000
-#define OM_DEFAULT_IP_ADDRESS "192.168.10.105" //"192.168.0.1"
-//"192.168.10.105"
+//#define OM_DEFAULT_IP_ADDRESS "192.168.10.105" //"192.168.0.1"
 #define OM_DEFAULT_PORT 28734
 
 namespace libQuestMR
 {
-
-inline int WSAGetLastError()
-{
-    return errno;
-}
 
 uint64_t getTimestampMs();
 
@@ -58,21 +45,6 @@ public:
 	virtual ssize_t recv(char *buf, size_t bufferSize) = 0;
 };
 
-class QuestVideoSourceSocket : public QuestVideoSource
-{
-public:
-	virtual ~QuestVideoSourceSocket();
-	virtual bool isValid();
-	virtual ssize_t recv(char *buf, size_t bufferSize);
-
-    void Connect();
-    void Disconnect();
-
-    SOCKET m_connectSocket = INVALID_SOCKET;
-    std::string m_ipaddr = OM_DEFAULT_IP_ADDRESS;
-	uint32_t m_port = OM_DEFAULT_PORT;
-};
-
 class QuestVideoSourceBufferedSocket : public QuestVideoSource
 {
 public:
@@ -80,12 +52,10 @@ public:
 	virtual bool isValid();
 	virtual ssize_t recv(char *buf, size_t bufferSize);
 
-    void Connect();
+    void Connect(std::string ipaddr, uint32_t port = OM_DEFAULT_PORT);
     void Disconnect();
 
     BufferedSocket m_connectSocket;
-    std::string m_ipaddr = OM_DEFAULT_IP_ADDRESS;
-	uint32_t m_port = OM_DEFAULT_PORT;
 };
 
 class QuestVideoSourceFile : public QuestVideoSource

@@ -1,5 +1,5 @@
-#include "QuestCalibData.h"
-#include "QuestStringUtil.h"
+#include <libQuestMR/QuestCalibData.h>
+#include <libQuestMR/QuestStringUtil.h>
 #include <sstream>
 
 namespace libQuestMR

@@ -14,9 +14,9 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "QuestVideoMngr.h"
+#include <libQuestMR/QuestVideoMngr.h>
+#include <libQuestMR/log.h>
 #include <fcntl.h>
-#include "log.h"
 
 namespace libQuestMR
 {
@@ -390,132 +390,6 @@ void QuestVideoMngr::detachSource()
 }
 
 
-
-QuestVideoSourceSocket::~QuestVideoSourceSocket()
-{
-    Disconnect();
-}
-
-
-void QuestVideoSourceSocket::Connect()
-{
-    if (m_connectSocket != INVALID_SOCKET)
-    {
-        OM_BLOG(LOG_ERROR, "Already connected");
-        return;
-    }
-
-    struct addrinfo *result = NULL;
-    struct addrinfo *ptr = NULL;
-    struct addrinfo hints = { 0 };
-
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_protocol = IPPROTO_TCP;
-
-    int iResult;
-    iResult = getaddrinfo(m_ipaddr.c_str(), std::to_string(m_port).c_str(), &hints, &result);
-    if (iResult != 0)
-    {
-        OM_BLOG(LOG_ERROR, "getaddrinfo failed: %d", iResult);
-    }
-
-    ptr = result;
-    m_connectSocket = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
-    if (m_connectSocket == INVALID_SOCKET)
-    {
-        OM_BLOG(LOG_ERROR, "Error at socket(): ");//, WSAGetLastError());
-        freeaddrinfo(result);
-    }
-
-    if (m_connectSocket != INVALID_SOCKET)
-    {
-        // put socked in non-blocking mode...
-        u_long block = 1;
-        /*if (ioctlsocket(m_connectSocket, FIONBIO, &block) == SOCKET_ERROR)
-        {
-            OM_BLOG(LOG_ERROR, "Unable to put socket to unblocked mode");
-        }*/
-
-        iResult = connect(m_connectSocket, ptr->ai_addr, (int)ptr->ai_addrlen);
-
-        //fcntl(m_connectSocket, F_SETFL, fcntl(m_connectSocket, F_GETFL, 0) | O_NONBLOCK);
-
-        bool hasError = true;
-        if (iResult == SOCKET_ERROR)
-        {
-            printf("iResult == SOCKET_ERROR\n");
-            if (WSAGetLastError() == WSAEWOULDBLOCK)
-            {
-                fd_set setW, setE;
-
-                FD_ZERO(&setW);
-                FD_SET(m_connectSocket, &setW);
-                FD_ZERO(&setE);
-                FD_SET(m_connectSocket, &setE);
-
-                timeval time_out = { 0 };
-                time_out.tv_sec = 2;
-                time_out.tv_usec = 0;
-
-                int ret = select(0, NULL, &setW, &setE, &time_out);
-                if (ret > 0 && !FD_ISSET(m_connectSocket, &setE))
-                {
-                    hasError = false;
-                }
-            }
-        } else {
-            printf("iResult != SOCKET_ERROR\n");
-            hasError = false;
-        }
-
-        if (hasError)
-        {
-            OM_BLOG(LOG_ERROR, "Unable to connect");
-            printf("Please verify the Quest IP address, and if MRC-enabled game is running on Quest.\n\nReboot the headset and re-launch the game if the issue remains.\n");
-            closesocket(m_connectSocket);
-            m_connectSocket = INVALID_SOCKET;
-        }
-        else
-        {
-            OM_BLOG(LOG_INFO, "Socket connected to %s:%d", m_ipaddr.c_str(), m_port);
-            block = 0;
-            if (ioctlsocket(m_connectSocket, FIONBIO, &block) == SOCKET_ERROR)
-            {
-                OM_BLOG(LOG_ERROR, "Unable to put socket to blocked mode");
-            }
-        }
-    }
-
-    freeaddrinfo(result);
-}
-
-ssize_t QuestVideoSourceSocket::recv(char *buf, size_t bufferSize)
-{
-    return ::recv(m_connectSocket, buf, bufferSize, 0);
-}
-
-bool QuestVideoSourceSocket::isValid()
-{
-    return m_connectSocket != INVALID_SOCKET;
-}
-
-void QuestVideoSourceSocket::Disconnect()
-{
-    int ret = closesocket(m_connectSocket);
-    if (ret == INVALID_SOCKET)
-    {
-        //OM_BLOG(LOG_ERROR, "closesocket error %d", WSAGetLastError());
-        OM_BLOG(LOG_ERROR, "closesocket error");
-    }
-    m_connectSocket = INVALID_SOCKET;
-    OM_BLOG(LOG_INFO, "Socket disconnected");
-}
-
-
-
-
-
 QuestVideoSourceFile::~QuestVideoSourceFile()
 {
     close();
@@ -561,9 +435,9 @@ QuestVideoSourceBufferedSocket::~QuestVideoSourceBufferedSocket()
 }
 
 
-void QuestVideoSourceBufferedSocket::Connect()
+void QuestVideoSourceBufferedSocket::Connect(std::string ipaddr, uint32_t port)
 {
-    m_connectSocket.connect(m_ipaddr, m_port);
+    m_connectSocket.connect(ipaddr, port);
 }
 
 ssize_t QuestVideoSourceBufferedSocket::recv(char *buf, size_t bufferSize)

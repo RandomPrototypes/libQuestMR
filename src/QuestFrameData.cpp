@@ -1,5 +1,5 @@
-#include "QuestFrameData.h"
-#include "QuestStringUtil.h"
+#include <libQuestMR/QuestFrameData.h>
+#include <libQuestMR/QuestStringUtil.h>
 
 
 namespace libQuestMR
