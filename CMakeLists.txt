@@ -77,6 +77,7 @@ set_target_properties(libQuestMR PROPERTIES VERSION ${PROJECT_VERSION})
 
 if(BUILD_DEMO)
    add_executable(libQuestMRDemo ${LIB_INCLUDE} demo/main.cpp)
+   add_executable(demo-connectToMRC ${LIB_INCLUDE} demo/demo-connectToMRC.cpp)
 endif()
 
 if(USE_OPENCV)
@@ -93,6 +94,8 @@ endif()
 if(BUILD_DEMO)
    target_link_libraries(libQuestMRDemo PRIVATE ${OpenCV_LIBS})
    target_link_libraries(libQuestMRDemo LINK_PUBLIC libQuestMR)
+   target_link_libraries(demo-connectToMRC PRIVATE ${OpenCV_LIBS})
+   target_link_libraries(demo-connectToMRC LINK_PUBLIC libQuestMR)
 endif()
 
 install(TARGETS libQuestMR  EXPORT libQuestMRConfig
