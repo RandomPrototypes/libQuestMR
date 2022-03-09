@@ -46,7 +46,9 @@ public:
 
 #ifdef LIBQUESTMR_USE_OPENCV
     cv::Mat getCameraMatrix() const;
+    void setCameraMatrix(const cv::Mat& K);
     cv::Mat getDistCoeffs() const;
+    void setDistCoeffs(const cv::Mat& distCoeffs);
     cv::Mat getTranslation() const;
     cv::Mat getRotation() const;
     cv::Mat getRawTranslation() const;
@@ -62,10 +64,12 @@ public:
 #endif
 };
 
+#ifdef LIBQUESTMR_USE_OPENCV
 //from 4x1 (x,y,z,w) quaternion mat to 3x3 rotation matrix 
 cv::Mat quaternion2rotationMat(const cv::Mat& quaternion);
 //from 4x1 (x,y,z,w) quaternion mat to 3x1 rodrigues mat.
 //TODO : not tested, need to verify if this works properly
 cv::Mat quaternion2rvec(const cv::Mat& quaternion);
+#endif
 
 }

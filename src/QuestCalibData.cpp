@@ -110,7 +110,7 @@ cv::Mat vec2mat(const std::vector<double>& vec, int rows, int cols)
         cols = vec.size() / rows;
     if(vec.size() != rows*cols)
     {
-        printf("vec2mat error : %d != %d*%d\n", vec.size(), rows, cols);
+        printf("vec2mat error : %d != %d*%d\n", (int)vec.size(), rows, cols);
         return cv::Mat();
     }
     cv::Mat mat(rows, cols, CV_64F);
@@ -124,12 +124,23 @@ template<typename T>
 std::vector<T> mat2vec(const cv::Mat& mat)
 {
     std::vector<T> vec;
-    for(int i = 0; i < mat.rows; i++)
-    {
-        const T *data = mat.ptr<T>(i);
-        for(int j = 0; j < mat.cols; j++)
-            vec.push_back(data[j]);
-    }
+    if(mat.type() == CV_32F) {
+		for(int i = 0; i < mat.rows; i++)
+		{
+		    const float *data = mat.ptr<float>(i);
+		    for(int j = 0; j < mat.cols; j++)
+		        vec.push_back(data[j]);
+		}
+	} else if(mat.type() == CV_64F) {
+		for(int i = 0; i < mat.rows; i++)
+		{
+		    const double *data = mat.ptr<double>(i);
+		    for(int j = 0; j < mat.cols; j++)
+		        vec.push_back(data[j]);
+		}
+	} else if(!mat.empty()) {
+		throw std::runtime_error("wrong mat type");
+	}
     return vec;
 }
 
@@ -295,7 +306,9 @@ void QuestCalibData::loadXMLString(const char *str)
 
 #ifdef LIBQUESTMR_USE_OPENCV
 cv::Mat QuestCalibData::getCameraMatrix() const { return vec2mat(camera_matrix, 3, 3); }
+void    QuestCalibData::setCameraMatrix(const cv::Mat& K) { camera_matrix = mat2vec<double>(K); }
 cv::Mat QuestCalibData::getDistCoeffs() const { return vec2mat(distortion_coefficients, -1, 1); }
+void    QuestCalibData::setDistCoeffs(const cv::Mat& distCoeffs) { distortion_coefficients = mat2vec<double>(distCoeffs); }
 cv::Mat QuestCalibData::getTranslation() const { return vec2mat(translation, 3, 1); }
 cv::Mat QuestCalibData::getRotation() const { return vec2mat(rotation, 4, 1); }
 cv::Mat QuestCalibData::getRawTranslation() const { return vec2mat(raw_translation, 3, 1); }
