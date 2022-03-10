@@ -1,41 +1,9 @@
 #include <stdio.h>
 #include <opencv2/opencv.hpp>
 #include <libQuestMR/QuestCalibData.h>
+#include "calibration_helper.h"
 
 using namespace libQuestMR;
-
-double calibrateIntrisic(const std::vector<std::vector<cv::Point2f> >& listImgCorners, cv::Size chessboardSize, cv::Size imgSize, cv::Mat& K, cv::Mat& distCoeffs, std::vector<cv::Mat>& rvecs, std::vector<cv::Mat>& tvecs)
-{
-	std::vector<cv::Point3f> corners3D;
-	for(int i = 0; i < chessboardSize.height; i++)
-	{
-		for(int j = 0; j < chessboardSize.width; j++)
-			corners3D.push_back(cv::Point3f(j,i,0));
-	}
-	
-	std::vector<std::vector<cv::Point3f> > listPoints3D;
-	for(int i = 0; i < listImgCorners.size(); i++)
-		listPoints3D.push_back(corners3D);
-	
-	std::vector<cv::Point3f> newObjPoints;
-	int flags = cv::CALIB_FIX_K3 | cv::CALIB_FIX_K4 | cv::CALIB_FIX_K5 | cv::CALIB_FIX_K6;// | cv::CALIB_ZERO_TANGENT_DIST;
-    int iFixedPoint = chessboardSize.width - 1;//-1
-    distCoeffs = cv::Mat::zeros(8, 1, CV_64F);
-	return calibrateCameraRO(listPoints3D, listImgCorners, imgSize, iFixedPoint, K, distCoeffs, rvecs, tvecs, newObjPoints, flags | cv::CALIB_USE_LU);
-}
-
-std::vector<cv::Point2f> projectChessboard(cv::Size chessboardSize, const cv::Mat& K, const cv::Mat& distCoeffs, const cv::Mat& rvec, const cv::Mat& tvec)
-{
-	std::vector<cv::Point3f> corners3D;
-	for(int i = 0; i < chessboardSize.height; i++)
-	{
-		for(int j = 0; j < chessboardSize.width; j++)
-			corners3D.push_back(cv::Point3f(j,i,0));
-	}
-	std::vector<cv::Point2f> result;
-	cv::projectPoints(corners3D, rvec, tvec, K, distCoeffs, result);
-	return result;
-}
 
 void captureAndCalibrateIntrinsic(int deviceID, cv::Size chessboardSize, const char *outputFilename)
 {
@@ -127,7 +95,7 @@ void captureAndCalibrateIntrinsic(int deviceID, cv::Size chessboardSize, const c
 int main(int argc, char **argv) 
 {
     if(argc < 5) {
-		printf("usage: demo-calibrateCameraIntrinsic deviceID chessboardRows chessboardCols outputFile\n");
+		printf("usage: demo-calibrateCameraIntrinsic-cv deviceID chessboardRows chessboardCols outputFile\n");
 	} else {
 		captureAndCalibrateIntrinsic(std::stoi(argv[1]), cv::Size(std::stoi(argv[2]), std::stoi(argv[3])), argv[4]);
     }
