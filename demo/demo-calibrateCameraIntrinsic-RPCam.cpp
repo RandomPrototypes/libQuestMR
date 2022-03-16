@@ -137,10 +137,10 @@ void captureAndCalibrateIntrinsic(cv::Size chessboardSize, const char *outputFil
 
 int main(int argc, char **argv) 
 {
-    if(argc < 4) {
+	if(argc < 4) {
 		printf("usage: demo-calibrateCameraIntrinsic-RPCam chessboardRows chessboardCols outputFile\n");
 	} else {
 		captureAndCalibrateIntrinsic(cv::Size(std::stoi(argv[1]), std::stoi(argv[2])), argv[3]);
-    }
+	}
     return 0;
 }

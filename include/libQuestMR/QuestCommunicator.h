@@ -78,7 +78,12 @@ public:
     //Thread-safe function to set the calibration data
     void setCalibData(const std::string& data);
 
+	//request upload calib data to the quest.
+	//Non-blocking, you should wait until isCalibDataUploaded() is true for the upload to be done.
     void sendCalibDataToQuest(const std::string& data);
+    
+    //true when the calib data has been uploaded to the quest
+    bool isCalibDataUploaded();
 
     //Thread-safe function to get the latest calibration data
     std::string getCalibData();

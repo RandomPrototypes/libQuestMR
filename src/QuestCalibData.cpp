@@ -7,20 +7,32 @@ namespace libQuestMR
 
 std::string getString(tinyxml2::XMLElement *rootElem, const char *nodeName)
 {
-    return rootElem->FirstChildElement(nodeName)->GetText();
+	auto *elem = rootElem->FirstChildElement(nodeName);
+	if(elem == NULL)
+		return "";
+	const char *str = elem->GetText();
+	if(str == NULL)
+		return "";
+    return str;
 }
 
 int getInt(tinyxml2::XMLElement *rootElem, const char *nodeName)
 {
-    int val;
-    rootElem->FirstChildElement(nodeName)->QueryIntText(&val);
+    int val = 0;
+    auto *elem = rootElem->FirstChildElement(nodeName);
+    if(elem == NULL)
+		return 0;
+    elem->QueryIntText(&val);
     return val;
 }
 
 double getDouble(tinyxml2::XMLElement *rootElem, const char *nodeName)
 {
-    double val;
-    rootElem->FirstChildElement(nodeName)->QueryDoubleText(&val);
+    double val = 0;
+    auto *elem = rootElem->FirstChildElement(nodeName);
+    if(elem == NULL)
+		return 0;
+    elem->QueryDoubleText(&val);
     return val;
 }
 
@@ -244,6 +256,10 @@ QuestCalibData::QuestCalibData()
 void QuestCalibData::loadXML(tinyxml2::XMLDocument& doc)
 {
     tinyxml2::XMLElement *rootElem = doc.FirstChildElement("opencv_storage");
+    if(rootElem == NULL) {
+    	printf("can not load calib XML\n");
+    	return ;
+    }
     camera_id = getString(rootElem, "camera_id");
     camera_name = getString(rootElem, "camera_name");
     image_width = getInt(rootElem, "image_width");

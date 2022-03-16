@@ -94,10 +94,10 @@ void captureAndCalibrateIntrinsic(int deviceID, cv::Size chessboardSize, const c
 
 int main(int argc, char **argv) 
 {
-    if(argc < 5) {
+	if(argc < 5) {
 		printf("usage: demo-calibrateCameraIntrinsic-cv deviceID chessboardRows chessboardCols outputFile\n");
 	} else {
 		captureAndCalibrateIntrinsic(std::stoi(argv[1]), cv::Size(std::stoi(argv[2]), std::stoi(argv[3])), argv[4]);
-    }
-    return 0;
+	}
+	return 0;
 }

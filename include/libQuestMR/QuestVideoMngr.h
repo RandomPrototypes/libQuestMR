@@ -52,7 +52,7 @@ public:
 	virtual bool isValid();
 	virtual ssize_t recv(char *buf, size_t bufferSize);
 
-    void Connect(std::string ipaddr, uint32_t port = OM_DEFAULT_PORT);
+    bool Connect(std::string ipaddr, uint32_t port = OM_DEFAULT_PORT);
     void Disconnect();
 
     BufferedSocket m_connectSocket;

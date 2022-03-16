@@ -176,6 +176,11 @@ void QuestCommunicatorThreadData::sendCalibDataToQuest(const std::string& data)
     mutex.unlock();
 }
 
+bool QuestCommunicatorThreadData::isCalibDataUploaded()
+{
+	return !needUploadCalibData;
+}
+
 bool QuestCommunicatorThreadData::hasNewFrameData()
 {
     mutex.lock();

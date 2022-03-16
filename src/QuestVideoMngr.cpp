@@ -435,9 +435,9 @@ QuestVideoSourceBufferedSocket::~QuestVideoSourceBufferedSocket()
 }
 
 
-void QuestVideoSourceBufferedSocket::Connect(std::string ipaddr, uint32_t port)
+bool QuestVideoSourceBufferedSocket::Connect(std::string ipaddr, uint32_t port)
 {
-    m_connectSocket.connect(ipaddr, port);
+    return m_connectSocket.connect(ipaddr, port);
 }
 
 ssize_t QuestVideoSourceBufferedSocket::recv(char *buf, size_t bufferSize)
