@@ -87,7 +87,7 @@ jobs:
     - name: Configure CMake
       if: runner.os != 'Windows'
       run: |
-        cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_OPENCV=ON -DBUILD_DEMO=ON -DUSE_RPCameraInterface=ON -DUSE_FFMPEG=ON
+        cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_OPENCV=ON -DBUILD_DEMO=ON -DUSE_RPCameraInterface=ON -DUSE_FFMPEG=ON 
 
     - name: Configure CMake
       if: runner.os == 'Windows'
