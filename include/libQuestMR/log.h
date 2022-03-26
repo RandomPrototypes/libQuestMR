@@ -27,6 +27,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 //#define OM_BLOG(level, format, ...) \
 	OM_LOG_S(this->m_src, level, format, ##__VA_ARGS__)
+	
+#ifdef DEBUG_OCULUS_MRC_SOURCE
 
 #define OM_LOG(level, format, ...) \
 	printf("[OculusMrcSource]: " format "\n", ##__VA_ARGS__)
@@ -34,6 +36,14 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #define OM_LOG_S(source, level, format, ...) \
 	printf("[OculusMrcSource '%s']: " format "\n", \
 			"TODO", ##__VA_ARGS__)
+
+#else
+
+#define OM_LOG(level, format, ...)
+
+#define OM_LOG_S(source, level, format, ...)
+
+#endif
 
 #define OM_BLOG(level, format, ...) \
 	OM_LOG_S(this->m_src, level, format, ##__VA_ARGS__)

@@ -1,0 +1,81 @@
+name: CMake
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
+    # You can convert this to a matrix build if you need cross-platform coverage.
+    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        #os: [ubuntu-latest, macOS-latest, windows-latest]
+        os: [ubuntu-latest]
+        #os: [windows-latest]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install libav and OpenCV
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt update
+        sudo apt -y install pkg-config 
+        sudo apt -y install libavcodec-dev libavformat-dev libswscale-dev libavdevice-dev libavfilter-dev
+        sudo apt -y install libopencv-dev
+
+    - name: Install libav and OpenCV
+      if: runner.os == 'Windows'
+      run: |
+        C:\msys64\usr\bin\wget.exe -q -O ${{github.workspace}}/opencv.zip https://github.com/opencv/opencv/archive/refs/tags/3.4.16.zip
+        7z x ${{github.workspace}}/opencv.zip -o"${{github.workspace}}"
+        mv ${{github.workspace}}/opencv-3.4.16 ${{github.workspace}}/opencv
+        cd ${{github.workspace}}/opencv
+        mkdir release
+        mkdir install
+        cd release
+        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/opencv/install -DWITH_CUDA=OFF -DBUILD_TESTS=OFF -DBUILD_PERF_TESTS=OFF -DBUILD_EXAMPLES=OFF ..
+        cmake --build ${{github.workspace}}/opencv/release --config ${{env.BUILD_TYPE}}
+        cmake --install ${{github.workspace}}/opencv/release 
+        C:\msys64\usr\bin\wget.exe -q -O ${{github.workspace}}/ffmpeg.zip https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n5.0-latest-win64-gpl-shared-5.0.zip
+        7z x ${{github.workspace}}/ffmpeg.zip -o"${{github.workspace}}"
+        mv ${{github.workspace}}/ffmpeg-n5.0-latest-win64-gpl-shared-5.0 ${{github.workspace}}/ffmpeg
+
+    - name: Install libav and OpenCV
+      if: runner.os == 'macOS'
+      run: |
+        brew install pkg-config
+        brew install ffmpeg
+        brew install opencv
+
+    # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+    # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+    - name: Configure CMake
+      if: runner.os != 'Windows'
+      run: |
+        cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_OPENCV=ON -DBUILD_DEMO=ON -DUSE_RPCameraInterface=OFF -DUSE_FFMPEG=ON
+
+    - name: Configure CMake
+      if: runner.os == 'Windows'
+      run: |
+        cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_OPENCV=ON -DFFMPEG_DIR=${{github.workspace}}/ffmpeg -DOpenCV_DIR=${{github.workspace}}/opencv/install
+
+    - name: Build
+      # Build your program with the given configuration
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+
+    - name: Test
+      working-directory: ${{github.workspace}}/build
+      # Execute tests defined by the CMake configuration.  
+      # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
+      run: ctest -C ${{env.BUILD_TYPE}}

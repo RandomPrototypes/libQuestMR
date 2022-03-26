@@ -1,11 +1,15 @@
 #pragma once
 
+#include "config.h"
+
+#ifdef LIBQUESTMR_USE_FFMPEG
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
 #include <libavutil/error.h>
 }
+#endif
 
 #include <iostream>
 #include <unistd.h>
@@ -17,8 +21,6 @@ extern "C" {
 #include <netdb.h>
 
 #include "frame.h"
-
-#include "config.h"
 
 #include "BufferedSocket.h"
 
@@ -35,9 +37,9 @@ extern "C" {
 namespace libQuestMR
 {
 
-uint64_t getTimestampMs();
+RP_EXPORTS uint64_t getTimestampMs();
 
-class QuestVideoSource
+class RP_EXPORTS QuestVideoSource
 {
 public:
 	virtual ~QuestVideoSource(){}
@@ -45,7 +47,7 @@ public:
 	virtual ssize_t recv(char *buf, size_t bufferSize) = 0;
 };
 
-class QuestVideoSourceBufferedSocket : public QuestVideoSource
+class RP_EXPORTS QuestVideoSourceBufferedSocket : public QuestVideoSource
 {
 public:
 	virtual ~QuestVideoSourceBufferedSocket();
@@ -58,7 +60,7 @@ public:
     BufferedSocket m_connectSocket;
 };
 
-class QuestVideoSourceFile : public QuestVideoSource
+class RP_EXPORTS QuestVideoSourceFile : public QuestVideoSource
 {
 public:
 	virtual ~QuestVideoSourceFile();
@@ -71,20 +73,22 @@ public:
     FILE *file = NULL;
 };
 
-class QuestVideoMngr
+class RP_EXPORTS QuestVideoMngr
 {
 public:
-    cv::Mat m_temp_texture;
-
+#ifdef LIBQUESTMR_USE_FFMPEG
     AVCodec* m_codec = nullptr;
 	AVCodecContext* m_codecContext = nullptr;
+	SwsContext* m_swsContext = nullptr;
+	AVPixelFormat m_swsContext_SrcPixelFormat = AV_PIX_FMT_NONE;
+#endif
 
     FrameCollection m_frameCollection;
+    
+    bool videoDecoding;
 
-    SwsContext* m_swsContext = nullptr;
 	int m_swsContext_SrcWidth = 0;
 	int m_swsContext_SrcHeight = 0;
-	AVPixelFormat m_swsContext_SrcPixelFormat = AV_PIX_FMT_NONE;
 	int m_swsContext_DestWidth = 0;
 	int m_swsContext_DestHeight = 0;
 
@@ -98,6 +102,7 @@ public:
 
 #ifdef LIBQUESTMR_USE_OPENCV
 	cv::Mat mostRecentImg;
+	cv::Mat m_temp_texture;
 #endif
     uint64_t mostRecentTimestamp;
 
@@ -108,20 +113,21 @@ public:
     void StartDecoder();
     void StopDecoder();
 
-	void setRecording(const char *folder, const char *filenameWithoutExt);
-	void setRecordedTimestampSource(const char *filename);
+	void setRecording(const char *folder, const char *filenameWithoutExt);//set folder and filename (without extension) for recording 
+	void setRecordedTimestampSource(const char *filename);//set timestamp file (for playback)
+	void setVideoDecoding(bool videoDecoding);//to disable video decoding (useful if we want to record without preview)
 
     void ReceiveData();
-    void VideoTickImpl(bool skipOldFrames = false);
-    void attachSource(QuestVideoSource *videoSource);
-    void detachSource();
+    void VideoTickImpl(bool skipOldFrames = false);//process the received data
+    void attachSource(QuestVideoSource *videoSource);//attach the data source (socket, file,...)
+    void detachSource();//detach the data source
 
-    uint32_t GetWidth()
+    uint32_t GetWidth()//get img width
 	{
 		return m_width;
 	}
 
-	uint32_t GetHeight()
+	uint32_t GetHeight()//get img height
 	{
 		return m_height;
 	}

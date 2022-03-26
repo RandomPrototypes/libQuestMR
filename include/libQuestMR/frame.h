@@ -14,6 +14,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #pragma once
 
+#include "config.h"
+
 #include <stdint.h>
 #include <memory>
 #include <vector>
@@ -49,7 +51,7 @@ struct Frame
 
 //typedef std::vector<uint8_t> Frame;
 
-class FrameCollection
+class RP_EXPORTS FrameCollection
 {
 public:
 	FrameCollection();

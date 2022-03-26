@@ -15,7 +15,7 @@
 namespace libQuestMR
 {
 
-class QuestCalibData
+class RP_EXPORTS QuestCalibData
 {
 public:
     std::string camera_id;
@@ -66,10 +66,10 @@ public:
 
 #ifdef LIBQUESTMR_USE_OPENCV
 //from 4x1 (x,y,z,w) quaternion mat to 3x3 rotation matrix 
-cv::Mat quaternion2rotationMat(const cv::Mat& quaternion);
+RP_EXPORTS cv::Mat quaternion2rotationMat(const cv::Mat& quaternion);
 //from 4x1 (x,y,z,w) quaternion mat to 3x1 rodrigues mat.
 //TODO : not tested, need to verify if this works properly
-cv::Mat quaternion2rvec(const cv::Mat& quaternion);
+RP_EXPORTS cv::Mat quaternion2rvec(const cv::Mat& quaternion);
 #endif
 
 }

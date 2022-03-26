@@ -163,30 +163,47 @@ cv::Mat quaternion2rotationMat(const cv::Mat& quaternion)
     double qz = quaternion.at<double>(2,0);
     double qw = quaternion.at<double>(3,0);
 
-    cv::Quat<double> quat(qw, qx, qy, qz);
-    return cv::Mat(quat.toRotMat3x3());
+	//Quat is only available in OpenCV 4, so we use the formula directly for retro-compatibility. 
+    //cv::Quat<double> quat(qw, qx, qy, qz);
+    //return cv::Mat(quat.toRotMat3x3());
 
 
-    /*double n = qw*qw + qx*qx + qy*qy + qz*qz;//q.lengthSquared();
-    float s =  n == 0?  0 : 2 / n;
-    float wx = s * qw * qx, wy = s * qw * qy, wz = s * qw * qz;
-    float xx = s * qx * qx, xy = s * qx * qy, xz = s * qx * qz;
-    float yy = s * qy * qy, yz = s * qy * qz, zz = s * qz * qz;
+    double n = qw*qw + qx*qx + qy*qy + qz*qz;
+	double s =  n == 0?  0 : 2 / n;
+	double wx = s * qw * qx, wy = s * qw * qy, wz = s * qw * qz;
+	double xx = s * qx * qx, xy = s * qx * qy, xz = s * qx * qz;
+	double yy = s * qy * qy, yz = s * qy * qz, zz = s * qz * qz;
+	
+	cv::Mat R(3,3,CV_64F);
+	R.at<double>(0,0) = 1 - (yy + zz);   R.at<double>(0,1) = xy + wz;   R.at<double>(0,2) = xz - wy;
+	R.at<double>(1,0) = xy - wz;   R.at<double>(1,1) = 1 - (xx + zz);   R.at<double>(1,2) = yz + wx;
+	R.at<double>(2,0) = xz + wy;   R.at<double>(2,1) = yz - wx;   R.at<double>(2,2) = 1 - (xx + yy);
 
-    double m[16] = { 1 - (yy + zz),         xy + wz ,         xz - wy ,0,
-                        xy - wz ,    1 - (xx + zz),         yz + wx ,0,
-                        xz + wy ,         yz - wx ,    1 - (xx + yy),0,
-                            0 ,               0 ,               0 ,1  };
-    
-    cv::Mat R(3,3,CV_64F);
-    R.at<double>(0,0) = 1 - (yy + zz);   R.at<double>(0,1) = xy + wz;   R.at<double>(0,2) = xz - wy;
-    R.at<double>(1,0) = xy - wz;   R.at<double>(1,1) = 1 - (xx + zz);   R.at<double>(1,2) = yz + wx;
-    R.at<double>(2,0) = xz + wy;   R.at<double>(2,1) = yz - wx;   R.at<double>(2,2) = 1 - (xx + yy);
+	return R.t();
+}
 
-    //cv::Mat R;
-    //cv::Rodrigues(quaternion2rvec(quaternion), R);
-
-    return R.t();*/
+cv::Mat rotationMat2quaternion(const cv::Mat& R)
+{
+	cv::Mat rvec;
+	cv::Rodrigues(R(cv::Rect(0,0,3,3)), rvec);
+	double angle = sqrt(rvec.dot(rvec));
+	double qw, qx, qy, qz;
+	if (angle < 1.e-6) {
+	    qw = 1;
+	    qx = qy = qz = 0;
+	} else {
+		qw = cos(angle/2);
+		double S = sin(angle/2) / angle;
+		qx = S * rvec.at<double>(0,0);
+		qy = S * rvec.at<double>(1,0);
+		qz = S * rvec.at<double>(2,0);
+	}
+	cv::Mat quaternion(4,1,CV_64F);
+	quaternion.at<double>(0,0) = qx;
+    quaternion.at<double>(1,0) = qy;
+    quaternion.at<double>(2,0) = qz;
+    quaternion.at<double>(3,0) = qw;
+	return quaternion;
 }
 
 cv::Mat quaternion2rvec(const cv::Mat& quaternion)
@@ -222,12 +239,22 @@ cv::Mat quaternion2rvec(const cv::Mat& quaternion)
     result.at<double>(2,0) = angle*z;
     return result;
 }
-cv::Mat vec2Rt(const cv::Mat rvec, const cv::Mat& tvec)
+cv::Mat vec2RtMat(const cv::Mat rvec, const cv::Mat& tvec)
 {
     cv::Mat Rt = cv::Mat::eye(4,4,CV_64F);
     cv::Rodrigues(rvec, Rt(cv::Rect(0,0,3,3)));
     tvec.copyTo(Rt(cv::Rect(3,0,1,3)));
     return Rt;
+}
+cv::Mat RtMat2rvec(const cv::Mat Rt)
+{
+    cv::Mat rvec;
+    cv::Rodrigues(Rt(cv::Rect(0,0,3,3)), rvec);
+    return rvec;
+}
+cv::Mat RtMat2tvec(const cv::Mat Rt)
+{
+    return Rt(cv::Rect(3,0,1,3)).clone();
 }
 #endif
 
@@ -387,11 +414,14 @@ bool QuestCalibData::calibrateCamPose(const std::vector<cv::Point3d>& listPoint3
     cv::Mat rvec, tvec;
     if(!cv::solvePnP(listPoint3d, listPoint2d_flip, K, distCoeffs, rvec, tvec))
         return false;
-    cv::Mat Rt = vec2Rt(rvec, tvec);
+    cv::Mat Rt = vec2RtMat(rvec, tvec);
     cv::Mat Rt_inv = Rt.inv();
-    cv::Quat<double> rot = cv::Quat<double>::createFromRotMat(Rt_inv(cv::Rect(0,0,3,3)));
+    //Quat is only available in OpenCV 4, so we use the formula directly for retro-compatibility. 
+    //cv::Quat<double> rot = cv::Quat<double>::createFromRotMat(Rt_inv(cv::Rect(0,0,3,3)));
+    //rotation = {rot.x, rot.y, rot.z, rot.w};
+    cv::Mat rot = rotationMat2quaternion(Rt_inv(cv::Rect(0,0,3,3)));
+    rotation = {rot.at<double>(0,0), rot.at<double>(1,0), rot.at<double>(2,0), rot.at<double>(3,0)};
     translation = mat2vec<double>(Rt_inv(cv::Rect(3,0,1,3)));
-    rotation = {rot.x, rot.y, rot.z, rot.w};
     return true;
 }
 #endif
