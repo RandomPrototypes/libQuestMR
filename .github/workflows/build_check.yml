@@ -64,16 +64,17 @@ jobs:
         cd RPCameraInterface
         mkdir build
         mkdir install
-        cd build
         
     - name: Configure CMake (RPCameraInterface)
       if: runner.os != 'Windows'
       run: |
+        cd ${{github.workspace}}/RPCameraInterface/build
         cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_OPENCV=ON ..
           
     - name: Configure CMake (RPCameraInterface)
       if: runner.os == 'Windows'
       run: |
+        cd ${{github.workspace}}/RPCameraInterface/build
         cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_OPENCV=ON -DFFMPEG_DIR=${{github.workspace}}/ffmpeg ..
           
     - name: Build and Install RPCameraInterface
