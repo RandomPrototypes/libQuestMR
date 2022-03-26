@@ -278,7 +278,7 @@ void MouseCallBackFunc(int event, int x, int y, int flags, void* userdata)
     //printf("%d,%d\n", x, y);
 }
 
-void sample6()
+/*void sample6()
 {
     QuestCalibData calibData;
     calibData.loadXMLFile("record1/calib.xml");
@@ -315,10 +315,10 @@ void sample6()
 
         cv::Mat img = cv::imread("record1/img"+std::to_string(frameId)+".png");
         cv::imshow("img", img);
-        /*while(!mouseData.leftDown)
-            cv::waitKey(10);
-        while(mouseData.leftDown)
-            cv::waitKey(10);*/
+        //while(!mouseData.leftDown)
+        //    cv::waitKey(10);
+        //while(mouseData.leftDown)
+        //    cv::waitKey(10);
         fscanf(gtFile, "%d,%d,%d\n", &frameId, &(mouseData.x), &(mouseData.y));
         listImages.push_back(img);
         listPoints2D.push_back(cv::Point2d(mouseData.x, mouseData.y));
@@ -403,44 +403,44 @@ void sample6()
         }
         cv::Mat C;
         cv::solve(A,B,C, cv::DECOMP_SVD);
-        /*K.at<double>(0,0) = C.at<double>(0,0);
-        K.at<double>(0,2) = C.at<double>(1,0);
-        K.at<double>(1,1) = C.at<double>(2,0);
-        K.at<double>(1,2) = C.at<double>(3,0);*/
+        //K.at<double>(0,0) = C.at<double>(0,0);
+        //K.at<double>(0,2) = C.at<double>(1,0);
+        //K.at<double>(1,1) = C.at<double>(2,0);
+        //K.at<double>(1,2) = C.at<double>(3,0);
         
         int count = 0;
         for(int i = 0; i < listImages.size(); i++)
         {
             cv::Mat img = listImages[i].clone();
-            /*cv::Mat vec(4,1,CV_64F);
-            vec.at<double>(0,0) = listPoints3D[i].x;
-            vec.at<double>(1,0) = listPoints3D[i].y;
-            vec.at<double>(2,0) = listPoints3D[i].z;
-            vec.at<double>(3,0) = 1;
-            vec = K * Rt(cv::Rect(0,0,4,3)) * vec;
-            vec /= vec.at<double>(2,0);
-            cv::Point2d p(vec.at<double>(0,0), vec.at<double>(1,0));
-            if((k/128) % 2 == 0)
-                p.x = img.cols - p.x;*/
+            //cv::Mat vec(4,1,CV_64F);
+            //vec.at<double>(0,0) = listPoints3D[i].x;
+            //vec.at<double>(1,0) = listPoints3D[i].y;
+            //vec.at<double>(2,0) = listPoints3D[i].z;
+            //vec.at<double>(3,0) = 1;
+            //vec = K * Rt(cv::Rect(0,0,4,3)) * vec;
+            //vec /= vec.at<double>(2,0);
+            //cv::Point2d p(vec.at<double>(0,0), vec.at<double>(1,0));
+            //if((k/128) % 2 == 0)
+            //    p.x = img.cols - p.x;
             cv::Point2d p = calibData.projectToCam(listPoints3D[i]);
-            /*if((k/256) % 2 == 0)
-                p.y = img.rows - p.y;*/
+            //if((k/256) % 2 == 0)
+            //    p.y = img.rows - p.y;
             //p.x -= 200;
             //p.y -= 200;
 
-            /*cv::Mat vec2(4,1,CV_64F);
-            vec2.at<double>(0,0) = listHand3D[i].x;
-            vec2.at<double>(1,0) = listHand3D[i].y;
-            vec2.at<double>(2,0) = listHand3D[i].z;
-            vec2.at<double>(3,0) = 1;
-            vec2 = K * Rt(cv::Rect(0,0,4,3)) * vec2;
-            vec2 /= vec2.at<double>(2,0);
-            cv::Point2d p2(vec2.at<double>(0,0), vec2.at<double>(1,0));
-            if((k/128) % 2 == 0)
-                p2.x = img.cols - p2.x;*/
+            //cv::Mat vec2(4,1,CV_64F);
+            //vec2.at<double>(0,0) = listHand3D[i].x;
+            //vec2.at<double>(1,0) = listHand3D[i].y;
+            //vec2.at<double>(2,0) = listHand3D[i].z;
+            //vec2.at<double>(3,0) = 1;
+            //vec2 = K * Rt(cv::Rect(0,0,4,3)) * vec2;
+            //vec2 /= vec2.at<double>(2,0);
+            //cv::Point2d p2(vec2.at<double>(0,0), vec2.at<double>(1,0));
+            //if((k/128) % 2 == 0)
+            //    p2.x = img.cols - p2.x;
             cv::Point2d p2 = calibData.projectToCam(listHand3D[i]);
-            /*if((k/256) % 2 == 0)
-                p2.y = img.rows - p2.y;*/
+            //if((k/256) % 2 == 0)
+            //    p2.y = img.rows - p2.y;
 
             cv::Point2d diff = p - listPoints2D[i];
 
@@ -462,7 +462,7 @@ void sample6()
         if(count >= 16)
             printf("k: %d, %s\n", k, Rt_str.c_str());
     }
-}
+}*/
 
 void sample7()
 {
@@ -501,7 +501,7 @@ void sample7()
     }
 }
 
-void sample8()
+/*void sample8()
 {
     QuestCalibData calibData;
     calibData.loadXMLFile("record1/calib.xml");
@@ -562,7 +562,7 @@ void sample8()
         cv::imshow("img", img);
         cv::waitKey(0);
     }
-}
+}*/
 
 int main(int, char**) 
 {

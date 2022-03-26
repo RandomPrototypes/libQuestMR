@@ -11,7 +11,7 @@ set(EXTERNAL_INSTALL_LOCATION deps)
 FetchContent_Populate(
     BufferedSocket
     GIT_REPOSITORY https://github.com/RandomPrototypes/BufferedSocket.git
-    GIT_TAG 6feeef15136bd2157b144936619808db28cca51e
+    GIT_TAG 46ce2df10989871628a83e69ce63480b5d6f8a90
 )
 
 FetchContent_Populate(
@@ -23,9 +23,17 @@ FetchContent_Populate(
 SET(BufferedSocket ${bufferedsocket_SOURCE_DIR})
 SET(tinyxml2 ${tinyxml2_SOURCE_DIR})
 
+option(BUILD_DEMO "Build DEMO" ON)
 option(USE_OPENCV "Use OpenCV" ON)
 option(USE_RPCameraInterface "Use RPCameraInterface" ON)
-option(BUILD_DEMO "Build DEMO" ON)
+option(USE_FFMPEG "Use FFMPEG" ON)
+option(USE_ONNX_RUNTIME "Use ONNX Runtime" OFF)
+option(DEBUG_OCULUS_MRC_SOURCE "Debug Oculus MRC Source" OFF)
+
+if(USE_ONNX_RUNTIME)
+	find_path(ONNX_RUNTIME_SESSION_INCLUDE_DIRS onnxruntime_cxx_api.h HINTS /usr/local/include/onnxruntime/core/session)
+	find_library(ONNX_RUNTIME_LIB onnxruntime HINTS /usr/local/lib)
+endif()
 
 if(USE_OPENCV)
 	find_package(OpenCV REQUIRED)
@@ -38,21 +46,23 @@ if(USE_RPCameraInterface)
 	include_directories(${RPCameraInterface_INCLUDE_DIR})
 endif()
 
-if(WIN32)
-   SET(FFMPEG_DIR "" CACHE STRING "ffmpeg dir")
-   SET(FFMPEG_INCLUDE_DIR "" CACHE STRING "ffmpeg include dir")
-   SET(FFMPEG_LIB_DIR "" CACHE STRING "ffmpeg lib dir")
-   if(FFMPEG_DIR AND (NOT FFMPEG_INCLUDE_DIR))
-      set(FFMPEG_INCLUDE_DIR ${FFMPEG_DIR}/include CACHE STRING "ffmpeg include dir" FORCE)
-   endif()
-   if(FFMPEG_DIR AND (NOT FFMPEG_LIB_DIR))
-      set(FFMPEG_LIB_DIR ${FFMPEG_DIR}/lib CACHE STRING "ffmpeg lib dir" FORCE)
-   endif()
-   include_directories(${FFMPEG_INCLUDE_DIR})
-   link_directories(${FFMPEG_LIB_DIR})
-else()
-   find_package(PkgConfig REQUIRED)
-   pkg_check_modules(LIBAV REQUIRED IMPORTED_TARGET libavdevice libavfilter libavformat libavcodec libswresample libswscale libavutil)
+if(USE_FFMPEG)
+	if(WIN32)
+	   SET(FFMPEG_DIR "" CACHE STRING "ffmpeg dir")
+	   SET(FFMPEG_INCLUDE_DIR "" CACHE STRING "ffmpeg include dir")
+	   SET(FFMPEG_LIB_DIR "" CACHE STRING "ffmpeg lib dir")
+	   if(FFMPEG_DIR AND (NOT FFMPEG_INCLUDE_DIR))
+		  set(FFMPEG_INCLUDE_DIR ${FFMPEG_DIR}/include CACHE STRING "ffmpeg include dir" FORCE)
+	   endif()
+	   if(FFMPEG_DIR AND (NOT FFMPEG_LIB_DIR))
+		  set(FFMPEG_LIB_DIR ${FFMPEG_DIR}/lib CACHE STRING "ffmpeg lib dir" FORCE)
+	   endif()
+	   include_directories(${FFMPEG_INCLUDE_DIR})
+	   link_directories(${FFMPEG_LIB_DIR})
+	else()
+	   find_package(PkgConfig REQUIRED)
+	   pkg_check_modules(LIBAV REQUIRED IMPORTED_TARGET libavdevice libavfilter libavformat libavcodec libswresample libswscale libavutil)
+	endif()
 endif()
 
 SET (LIB_INCLUDE
@@ -64,7 +74,8 @@ SET (LIB_INCLUDE
              include/libQuestMR/QuestFrameData.h
              include/libQuestMR/QuestCommunicator.h
              include/libQuestMR/QuestStringUtil.h
-             ${tinyxml2}/tinyxml2.h)
+             ${tinyxml2}/tinyxml2.h
+			 ${BufferedSocket}/BufferedSocket.h)
 
 SET (LIB_SRC
 		    src/frame.cpp
@@ -74,14 +85,17 @@ SET (LIB_SRC
             src/QuestCommunicator.cpp
             src/QuestStringUtil.cpp
             ${tinyxml2}/tinyxml2.cpp
-            ${BufferedSocket}/BufferedSocket.h
     		${BufferedSocket}/BufferedSocket.cpp)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include ${BufferedSocket} ${tinyxml2})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include ${BufferedSocket} ${tinyxml2} ${ONNX_RUNTIME_SESSION_INCLUDE_DIRS})
 
 add_library(libQuestMR SHARED ${LIB_SRC} ${LIB_INCLUDE})
 set_target_properties(libQuestMR PROPERTIES VERSION ${PROJECT_VERSION})
 #set_target_properties(libQuestMR PROPERTIES PUBLIC_HEADER ${LIB_INCLUDE})
+
+if(DEBUG_OCULUS_MRC_SOURCE)
+	target_compile_definitions(libQuestMR PRIVATE DEBUG_OCULUS_MRC_SOURCE)
+endif()
 
 if(BUILD_DEMO)
 	add_executable(libQuestMRDemo ${LIB_INCLUDE} demo/main.cpp)
@@ -97,6 +111,9 @@ if(BUILD_DEMO)
 		add_executable(demo-calibrateCameraExtrinsic-RPCam ${LIB_INCLUDE} demo/demo-calibrateCameraExtrinsic-RPCam.cpp demo/RPCam_helper.h demo/RPCam_helper.cpp)
 		add_executable(demo-testCalib-RPCam ${LIB_INCLUDE} demo/demo-testCalib-RPCam.cpp demo/RPCam_helper.h demo/RPCam_helper.cpp)
 		add_executable(demo-capture-RPCam ${LIB_INCLUDE} demo/demo-capture-RPCam.cpp demo/RPCam_helper.h demo/RPCam_helper.cpp)
+		if(USE_ONNX_RUNTIME)
+			add_executable(demo-segmentation-RPCam ${LIB_INCLUDE} demo/demo-segmentation-RPCam.cpp demo/RPCam_helper.h demo/RPCam_helper.cpp)
+		endif()
 	endif()
 endif()
 
@@ -105,10 +122,15 @@ if(USE_OPENCV)
 endif()
 
 if(WIN32)
-	target_link_libraries(libQuestMR PRIVATE libavdevice libavfilter libavformat libavcodec libswresample libswscale libavutil)
 	target_link_libraries(libQuestMR PRIVATE ws2_32)
-else()
-	target_link_libraries(libQuestMR PRIVATE PkgConfig::LIBAV)
+endif()
+
+if(USE_FFMPEG)
+	if(WIN32)
+		target_link_libraries(libQuestMR PRIVATE libavdevice libavfilter libavformat libavcodec libswresample libswscale libavutil)
+	else()
+		target_link_libraries(libQuestMR PRIVATE PkgConfig::LIBAV)
+	endif()
 endif()
 
 if(BUILD_DEMO)
@@ -137,6 +159,10 @@ if(BUILD_DEMO)
 		target_link_libraries(demo-testCalib-RPCam LINK_PUBLIC libQuestMR RPCameraInterface)
 		target_link_libraries(demo-capture-RPCam PRIVATE ${OpenCV_LIBS})
 		target_link_libraries(demo-capture-RPCam LINK_PUBLIC libQuestMR RPCameraInterface)
+		if(USE_ONNX_RUNTIME)
+			target_link_libraries(demo-segmentation-RPCam PRIVATE ${ONNX_RUNTIME_LIB} ${OpenCV_LIBS})
+			target_link_libraries(demo-segmentation-RPCam LINK_PUBLIC libQuestMR RPCameraInterface)
+		endif()
 	endif()
 endif()
 
