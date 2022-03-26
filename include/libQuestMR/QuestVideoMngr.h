@@ -77,7 +77,7 @@ class RP_EXPORTS QuestVideoMngr
 {
 public:
 #ifdef LIBQUESTMR_USE_FFMPEG
-    AVCodec* m_codec = nullptr;
+    const AVCodec* m_codec = nullptr;
 	AVCodecContext* m_codecContext = nullptr;
 	SwsContext* m_swsContext = nullptr;
 	AVPixelFormat m_swsContext_SrcPixelFormat = AV_PIX_FMT_NONE;

@@ -43,7 +43,7 @@ jobs:
         cd ${{github.workspace}}/opencv
         mkdir release
         cd release
-        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DWITH_CUDA=OFF -DBUILD_TESTS=OFF -DBUILD_PERF_TESTS=OFF -DBUILD_EXAMPLES=OFF ..
+        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/opencv/install -DWITH_CUDA=OFF -DBUILD_TESTS=OFF -DBUILD_PERF_TESTS=OFF -DBUILD_EXAMPLES=OFF ..
         cmake --build ${{github.workspace}}/opencv/release --config ${{env.BUILD_TYPE}}
         cmake --install ${{github.workspace}}/opencv/release 
         C:\msys64\usr\bin\wget.exe -q -O ${{github.workspace}}/ffmpeg.zip https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n5.0-latest-win64-gpl-shared-5.0.zip
@@ -75,7 +75,7 @@ jobs:
       if: runner.os == 'Windows'
       run: |
         cd ${{github.workspace}}/RPCameraInterface/build
-        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_OPENCV=ON -DFFMPEG_DIR=${{github.workspace}}/ffmpeg ..
+        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_OPENCV=ON -DFFMPEG_DIR=${{github.workspace}}/ffmpeg -DOpenCV_DIR=${{github.workspace}}/opencv/install ..
           
     - name: Build and Install RPCameraInterface
       run: |
