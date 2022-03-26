@@ -42,9 +42,8 @@ jobs:
         mv ${{github.workspace}}/opencv-3.4.16 ${{github.workspace}}/opencv
         cd ${{github.workspace}}/opencv
         mkdir release
-        mkdir install
         cd release
-        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/opencv/install -DWITH_CUDA=OFF -DBUILD_TESTS=OFF -DBUILD_PERF_TESTS=OFF -DBUILD_EXAMPLES=OFF ..
+        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DWITH_CUDA=OFF -DBUILD_TESTS=OFF -DBUILD_PERF_TESTS=OFF -DBUILD_EXAMPLES=OFF ..
         cmake --build ${{github.workspace}}/opencv/release --config ${{env.BUILD_TYPE}}
         cmake --install ${{github.workspace}}/opencv/release 
         C:\msys64\usr\bin\wget.exe -q -O ${{github.workspace}}/ffmpeg.zip https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n5.0-latest-win64-gpl-shared-5.0.zip
@@ -57,18 +56,42 @@ jobs:
         brew install pkg-config
         brew install ffmpeg
         brew install opencv
+    
+    - name: Clone RPCameraInterface
+      run: |
+        cd ${{github.workspace}}
+        git clone https://github.com/RandomPrototypes/RPCameraInterface.git
+        cd RPCameraInterface
+        mkdir build
+        mkdir install
+        cd build
+        
+    - name: Configure CMake (RPCameraInterface)
+        if: runner.os != 'Windows'
+        run: |
+          cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_OPENCV=ON ..
+          
+    - name: Configure CMake (RPCameraInterface)
+        if: runner.os == 'Windows'
+        run: |
+          cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_OPENCV=ON -DFFMPEG_DIR=${{github.workspace}}/ffmpeg ..
+          
+    - name: Build and Install RPCameraInterface
+        run: |
+          cmake --build ${{github.workspace}}/RPCameraInterface/build --config ${{env.BUILD_TYPE}}
+          cmake --install ${{github.workspace}}/RPCameraInterface/build
 
     # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
     # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
     - name: Configure CMake
       if: runner.os != 'Windows'
       run: |
-        cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_OPENCV=ON -DBUILD_DEMO=ON -DUSE_RPCameraInterface=OFF -DUSE_FFMPEG=ON
+        cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_OPENCV=ON -DBUILD_DEMO=ON -DUSE_RPCameraInterface=ON -DUSE_FFMPEG=ON -DRPCameraInterface_DIR
 
     - name: Configure CMake
       if: runner.os == 'Windows'
       run: |
-        cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_OPENCV=ON -DFFMPEG_DIR=${{github.workspace}}/ffmpeg -DOpenCV_DIR=${{github.workspace}}/opencv/install
+        cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_OPENCV=ON -DBUILD_DEMO=ON -DUSE_RPCameraInterface=ON -DUSE_FFMPEG=ON -DFFMPEG_DIR=${{github.workspace}}/ffmpeg
 
     - name: Build
       # Build your program with the given configuration
