@@ -40,14 +40,14 @@ std::vector<std::string> splitStringByWhitespace(const std::string& str)
 {
     std::vector<std::string> list;
     int currentPos = 0;
-    skipEmpty(str.c_str(), str.length(), &currentPos);
+    skipEmpty(str.c_str(), (int)str.length(), &currentPos);
     while(currentPos < str.length())
     {
         int start = currentPos;
-        skipNonEmpty(str.c_str(), str.length(), &currentPos);
+        skipNonEmpty(str.c_str(), (int)str.length(), &currentPos);
         std::string val = str.substr(start, currentPos - start);
         list.push_back(val);
-        skipEmpty(str.c_str(), str.length(), &currentPos);
+        skipEmpty(str.c_str(), (int)str.length(), &currentPos);
     }
     return list;
 }
@@ -98,9 +98,9 @@ template<typename T>
 std::string makeXmlStringFromMatrix(std::string tag, const std::vector<T>& data, int rows, int cols, std::string dt = "d")
 {
     if(rows < 0)
-        rows = data.size() / cols;
+        rows = static_cast<int>(data.size()) / cols;
     if(cols < 0)
-        cols = data.size() / rows;
+        cols = static_cast<int>(data.size()) / rows;
     std::stringstream ss;
     ss << "<" << tag << " type_id=\"opencv-matrix\"><rows>" << rows << "</rows><cols>" << cols << "</cols><dt>" << dt << "</dt><data>";
     ss << std::scientific << std::setprecision(16);
@@ -117,9 +117,9 @@ std::string makeXmlStringFromMatrix(std::string tag, const std::vector<T>& data,
 cv::Mat vec2mat(const std::vector<double>& vec, int rows, int cols)
 {
     if(rows == -1)
-        rows = vec.size() / cols;
+        rows = static_cast<int>(vec.size()) / cols;
     if(cols == -1)
-        cols = vec.size() / rows;
+        cols = static_cast<int>(vec.size()) / rows;
     if(vec.size() != rows*cols)
     {
         printf("vec2mat error : %d != %d*%d\n", (int)vec.size(), rows, cols);

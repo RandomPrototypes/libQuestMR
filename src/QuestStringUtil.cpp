@@ -5,7 +5,7 @@ namespace libQuestMR
 
 void addToBuffer(std::vector<char>& buffer, const char *data, int N)
 {
-    int prev_size = buffer.size();
+    int prev_size = (int)buffer.size();
     buffer.resize(prev_size + N);
     for(int i = 0; i < N; i++)
         buffer[prev_size+i] = data[i];
