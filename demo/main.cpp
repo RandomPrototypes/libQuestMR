@@ -101,7 +101,7 @@ void sample3()
     QuestVideoMngr mngr;
     if(!use_recording)
     {
-        QuestVideoSourceBufferedSocket videoSrc;
+        QuestVideoSourceSocket videoSrc;
         videoSrc.Connect(DEFAULT_IP_ADDRESS);
         mngr.attachSource(&videoSrc);
         mngr.setRecording("output", "test");
