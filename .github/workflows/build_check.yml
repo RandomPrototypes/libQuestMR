@@ -69,30 +69,30 @@ jobs:
       if: runner.os != 'Windows'
       run: |
         cd ${{github.workspace}}/RPCameraInterface/build
-        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_OPENCV=ON ..
+        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/RPCameraInterface/install -DUSE_OPENCV=ON ..
           
     - name: Configure CMake (RPCameraInterface)
       if: runner.os == 'Windows'
       run: |
         cd ${{github.workspace}}/RPCameraInterface/build
-        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_OPENCV=ON -DFFMPEG_DIR=${{github.workspace}}/ffmpeg -DOpenCV_DIR=${{github.workspace}}/opencv/install ..
+        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/RPCameraInterface/install -DUSE_OPENCV=ON -DFFMPEG_DIR=${{github.workspace}}/ffmpeg -DOpenCV_DIR=${{github.workspace}}/opencv/install ..
           
     - name: Build and Install RPCameraInterface
       run: |
         cmake --build ${{github.workspace}}/RPCameraInterface/build --config ${{env.BUILD_TYPE}}
-        sudo cmake --install ${{github.workspace}}/RPCameraInterface/build
+        cmake --install ${{github.workspace}}/RPCameraInterface/build
 
     # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
     # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
     - name: Configure CMake
       if: runner.os != 'Windows'
       run: |
-        cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_OPENCV=ON -DBUILD_DEMO=ON -DUSE_RPCameraInterface=ON -DUSE_FFMPEG=ON 
+        cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_OPENCV=ON -DBUILD_DEMO=ON -DUSE_RPCameraInterface=ON -DUSE_FFMPEG=ON -DRPCameraInterface_DIR=${{github.workspace}}/RPCameraInterface/install
 
     - name: Configure CMake
       if: runner.os == 'Windows'
       run: |
-        cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_OPENCV=ON -DBUILD_DEMO=ON -DUSE_RPCameraInterface=ON -DUSE_FFMPEG=ON -DFFMPEG_DIR=${{github.workspace}}/ffmpeg
+        cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_OPENCV=ON -DBUILD_DEMO=ON -DUSE_RPCameraInterface=ON -DUSE_FFMPEG=ON -DRPCameraInterface_DIR=${{github.workspace}}/RPCameraInterface/install -DFFMPEG_DIR=${{github.workspace}}/ffmpeg
 
     - name: Build
       # Build your program with the given configuration
