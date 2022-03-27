@@ -33,6 +33,7 @@ option(DEBUG_OCULUS_MRC_SOURCE "Debug Oculus MRC Source" OFF)
 if(USE_ONNX_RUNTIME)
 	find_path(ONNX_RUNTIME_SESSION_INCLUDE_DIRS onnxruntime_cxx_api.h HINTS /usr/local/include/onnxruntime/core/session)
 	find_library(ONNX_RUNTIME_LIB onnxruntime HINTS /usr/local/lib)
+	include_directories(${ONNX_RUNTIME_SESSION_INCLUDE_DIRS})
 endif()
 
 if(USE_OPENCV)
@@ -62,6 +63,12 @@ if(USE_FFMPEG)
 	else()
 	   find_package(PkgConfig REQUIRED)
 	   pkg_check_modules(LIBAV REQUIRED IMPORTED_TARGET libavdevice libavfilter libavformat libavcodec libswresample libswscale libavutil)
+	   get_cmake_property(_variableNames VARIABLES)
+		list (SORT _variableNames)
+		foreach (_variableName ${_variableNames})
+			message(STATUS "${_variableName}=${${_variableName}}")
+		endforeach()
+		include_directories(${LIBAV_INCLUDE_DIRS})
 	endif()
 endif()
 
@@ -87,7 +94,7 @@ SET (LIB_SRC
             ${tinyxml2}/tinyxml2.cpp
     		${BufferedSocket}/BufferedSocket.cpp)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include ${BufferedSocket} ${tinyxml2} ${ONNX_RUNTIME_SESSION_INCLUDE_DIRS})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include ${BufferedSocket} ${tinyxml2})
 
 add_library(libQuestMR SHARED ${LIB_SRC} ${LIB_INCLUDE})
 set_target_properties(libQuestMR PROPERTIES VERSION ${PROJECT_VERSION})
