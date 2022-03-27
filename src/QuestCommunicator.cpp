@@ -99,9 +99,9 @@ bool QuestCommunicator::readMessage(QuestCommunicatorMessage *output)
 
 bool QuestCommunicator::sendMessage(const QuestCommunicatorMessage& msg)
 {
-    int totalSize = 12+msg.data.size();
+    int totalSize = 12+(int)msg.data.size();
     char *data = new char[totalSize];
-    createHeader(data, msg.type, msg.data.size());
+    createHeader(data, msg.type, (int)msg.data.size());
     for(size_t i = 0; i < msg.data.size(); i++)
         data[i+12] = msg.data[i];
     int ret = sendRawData(data, totalSize);
@@ -276,7 +276,7 @@ void QuestCommunicatorThreadData::threadFunc()
         if(message.type == 33)
         {
             QuestFrameData frame;
-            frame.parse(&(message.data[0]), message.data.size()-1);
+            frame.parse(&(message.data[0]), (int)message.data.size()-1);
             //printf("frame data:\n%s\n", frame.toString().c_str());
 
             pushFrameData(frame);

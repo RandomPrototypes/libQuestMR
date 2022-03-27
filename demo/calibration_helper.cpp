@@ -13,11 +13,15 @@ double calibrateIntrisic(const std::vector<std::vector<cv::Point2f> >& listImgCo
 	for(int i = 0; i < listImgCorners.size(); i++)
 		listPoints3D.push_back(corners3D);
 	
-	std::vector<cv::Point3f> newObjPoints;
 	int flags = cv::CALIB_FIX_K3 | cv::CALIB_FIX_K4 | cv::CALIB_FIX_K5 | cv::CALIB_FIX_K6;// | cv::CALIB_ZERO_TANGENT_DIST;
-    int iFixedPoint = chessboardSize.width - 1;//-1
     distCoeffs = cv::Mat::zeros(8, 1, CV_64F);
-	return calibrateCameraRO(listPoints3D, listImgCorners, imgSize, iFixedPoint, K, distCoeffs, rvecs, tvecs, newObjPoints, flags | cv::CALIB_USE_LU);
+    /*
+    //if opencv version >= 4
+    int iFixedPoint = chessboardSize.width - 1;//-1
+    std::vector<cv::Point3f> newObjPoints;
+    return calibrateCameraRO(listPoints3D, listImgCorners, imgSize, iFixedPoint, K, distCoeffs, rvecs, tvecs, newObjPoints, flags | cv::CALIB_USE_LU);
+	*/
+	return calibrateCamera(listPoints3D, listImgCorners, imgSize, K, distCoeffs, rvecs, tvecs, flags);
 }
 
 std::vector<cv::Point2f> projectChessboard(cv::Size chessboardSize, const cv::Mat& K, const cv::Mat& distCoeffs, const cv::Mat& rvec, const cv::Mat& tvec)

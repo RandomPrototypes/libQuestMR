@@ -28,9 +28,9 @@ extern "C" {
 namespace libQuestMR
 {
 
-RP_EXPORTS uint64_t getTimestampMs();
+LQMR_EXPORTS uint64_t getTimestampMs();
 
-class RP_EXPORTS QuestVideoSource
+class LQMR_EXPORTS QuestVideoSource
 {
 public:
 	virtual ~QuestVideoSource(){}
@@ -38,7 +38,7 @@ public:
 	virtual int recv(char *buf, size_t bufferSize) = 0;
 };
 
-class RP_EXPORTS QuestVideoSourceBufferedSocket : public QuestVideoSource
+class LQMR_EXPORTS QuestVideoSourceBufferedSocket : public QuestVideoSource
 {
 public:
 	virtual ~QuestVideoSourceBufferedSocket();
@@ -51,7 +51,7 @@ public:
     BufferedSocket m_connectSocket;
 };
 
-class RP_EXPORTS QuestVideoSourceFile : public QuestVideoSource
+class LQMR_EXPORTS QuestVideoSourceFile : public QuestVideoSource
 {
 public:
 	virtual ~QuestVideoSourceFile();
@@ -64,7 +64,7 @@ public:
     FILE *file = NULL;
 };
 
-class RP_EXPORTS QuestVideoMngr
+class LQMR_EXPORTS QuestVideoMngr
 {
 public:
 #ifdef LIBQUESTMR_USE_FFMPEG

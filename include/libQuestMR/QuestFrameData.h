@@ -12,7 +12,7 @@
 namespace libQuestMR
 {
 
-class RP_EXPORTS QuestFrameData
+class LQMR_EXPORTS QuestFrameData
 {
 public:
     int frame;

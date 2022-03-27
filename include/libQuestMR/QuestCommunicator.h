@@ -11,14 +11,14 @@
 namespace libQuestMR
 {
 
-class RP_EXPORTS QuestCommunicatorMessage
+class LQMR_EXPORTS QuestCommunicatorMessage
 {
 public:
     unsigned int type;
     std::vector<char> data;
 };
 
-class RP_EXPORTS QuestCommunicator
+class LQMR_EXPORTS QuestCommunicator
 {
 public:
     BufferedSocket sock;
@@ -64,7 +64,7 @@ public:
     static int findMessageStart(char *buffer, int length, int start = 0);
 };
 
-class RP_EXPORTS QuestCommunicatorThreadData
+class LQMR_EXPORTS QuestCommunicatorThreadData
 {
 public:
     QuestCommunicatorThreadData(QuestCommunicator *questCom);
@@ -115,7 +115,7 @@ private:
     int maxQueueSize;
 };
 
-RP_EXPORTS void QuestCommunicatorThreadFunc(QuestCommunicatorThreadData *data);
+LQMR_EXPORTS void QuestCommunicatorThreadFunc(QuestCommunicatorThreadData *data);
 
 
 }

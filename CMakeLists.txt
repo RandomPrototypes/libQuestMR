@@ -97,6 +97,7 @@ SET (LIB_SRC
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include ${BufferedSocket} ${tinyxml2})
 
 add_library(libQuestMR SHARED ${LIB_SRC} ${LIB_INCLUDE})
+target_compile_definitions(libQuestMR PRIVATE "LIBQUESTMR_EXPORTS")
 set_target_properties(libQuestMR PROPERTIES VERSION ${PROJECT_VERSION})
 #set_target_properties(libQuestMR PROPERTIES PUBLIC_HEADER ${LIB_INCLUDE})
 

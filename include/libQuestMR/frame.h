@@ -51,7 +51,7 @@ struct Frame
 
 //typedef std::vector<uint8_t> Frame;
 
-class RP_EXPORTS FrameCollection
+class LQMR_EXPORTS FrameCollection
 {
 public:
 	FrameCollection();

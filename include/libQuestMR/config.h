@@ -7,14 +7,14 @@
 
 //Taken from OpenCV
 
-#ifndef RP_EXPORTS
-# if (defined _WIN32 || defined WINCE || defined __CYGWIN__) && defined(RPCAMERAINTERFACE_EXPORTS)
-#   define RP_EXPORTS __declspec(dllexport)
-# elif defined __GNUC__ && __GNUC__ >= 4 && (defined(RPCAMERAINTERFACE_EXPORTS) || defined(__APPLE__))
-#   define RP_EXPORTS __attribute__ ((visibility ("default")))
+#ifndef LQMR_EXPORTS
+# if (defined _WIN32 || defined WINCE || defined __CYGWIN__) && defined(LIBQUESTMR_EXPORTS)
+#   define LQMR_EXPORTS __declspec(dllexport)
+# elif defined __GNUC__ && __GNUC__ >= 4 && (defined(LIBQUESTMR_EXPORTS) || defined(__APPLE__))
+#   define LQMR_EXPORTS __attribute__ ((visibility ("default")))
 # endif
 #endif
 
-#ifndef RP_EXPORTS
-# define RP_EXPORTS
+#ifndef LQMR_EXPORTS
+# define LQMR_EXPORTS
 #endif
