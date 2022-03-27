@@ -35,6 +35,18 @@ jobs:
         sudo apt -y install pkg-config 
         sudo apt -y install libavcodec-dev libavformat-dev libswscale-dev libavdevice-dev libavfilter-dev
         sudo apt -y install libopencv-dev
+    
+    - name: Install BufferedSocket
+      run: |
+        cd ${{github.workspace}}
+        git clone https://github.com/RandomPrototypes/BufferedSocket.git
+        cd BufferedSocket
+        mkdir build
+        mkdir install
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/BufferedSocket/install ..
+        cmake --build ${{github.workspace}}/BufferedSocket/build --config ${{env.BUILD_TYPE}}
+        cmake --install ${{github.workspace}}/BufferedSocket/build
 
     - name: Install libav and OpenCV
       if: runner.os == 'Windows'
@@ -71,13 +83,13 @@ jobs:
       if: runner.os != 'Windows'
       run: |
         cd ${{github.workspace}}/RPCameraInterface/build
-        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/RPCameraInterface/install -DUSE_OPENCV=ON ..
+        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/RPCameraInterface/install -DUSE_OPENCV=ON -DBufferedSocket_DIR=${{github.workspace}}/BufferedSocket/install/lib/cmake/BufferedSocket ..
           
     - name: Configure CMake (RPCameraInterface)
       if: runner.os == 'Windows'
       run: |
         cd ${{github.workspace}}/RPCameraInterface/build
-        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/RPCameraInterface/install -DUSE_OPENCV=ON -DFFMPEG_DIR=${{github.workspace}}/ffmpeg -DOpenCV_DIR=${{github.workspace}}/opencv/install ..
+        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/RPCameraInterface/install -DUSE_OPENCV=ON -DBufferedSocket_DIR=${{github.workspace}}/BufferedSocket/install/lib/cmake/BufferedSocket -DFFMPEG_DIR=${{github.workspace}}/ffmpeg -DOpenCV_DIR=${{github.workspace}}/opencv/install ..
           
     - name: Build and Install RPCameraInterface
       run: |
@@ -89,12 +101,12 @@ jobs:
     - name: Configure CMake
       if: runner.os != 'Windows'
       run: |
-        cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_OPENCV=ON -DBUILD_DEMO=ON -DUSE_RPCameraInterface=ON -DUSE_FFMPEG=ON -DRPCameraInterface_DIR=${{github.workspace}}/RPCameraInterface/install/lib/cmake/RPCameraInterface
+        cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_OPENCV=ON -DBUILD_DEMO=ON -DUSE_RPCameraInterface=ON -DUSE_FFMPEG=ON -DBufferedSocket_DIR=${{github.workspace}}/BufferedSocket/install/lib/cmake/BufferedSocket -DRPCameraInterface_DIR=${{github.workspace}}/RPCameraInterface/install/lib/cmake/RPCameraInterface
 
     - name: Configure CMake
       if: runner.os == 'Windows'
       run: |
-        cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_OPENCV=ON -DBUILD_DEMO=ON -DUSE_RPCameraInterface=ON -DUSE_FFMPEG=ON -DRPCameraInterface_DIR=${{github.workspace}}/RPCameraInterface/install/lib/cmake/RPCameraInterface -DFFMPEG_DIR=${{github.workspace}}/ffmpeg -DOpenCV_DIR=${{github.workspace}}/opencv/install
+        cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_OPENCV=ON -DBUILD_DEMO=ON -DUSE_RPCameraInterface=ON -DUSE_FFMPEG=ON -DBufferedSocket_DIR=${{github.workspace}}/BufferedSocket/install/lib/cmake/BufferedSocket -DRPCameraInterface_DIR=${{github.workspace}}/RPCameraInterface/install/lib/cmake/RPCameraInterface -DFFMPEG_DIR=${{github.workspace}}/ffmpeg -DOpenCV_DIR=${{github.workspace}}/opencv/install
 
     - name: Build
       # Build your program with the given configuration

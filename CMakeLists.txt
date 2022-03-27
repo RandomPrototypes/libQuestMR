@@ -9,18 +9,16 @@ enable_testing()
 set(EXTERNAL_INSTALL_LOCATION deps)
 
 FetchContent_Populate(
-    BufferedSocket
-    GIT_REPOSITORY https://github.com/RandomPrototypes/BufferedSocket.git
-    GIT_TAG 46ce2df10989871628a83e69ce63480b5d6f8a90
-)
-
-FetchContent_Populate(
     tinyxml2
     GIT_REPOSITORY https://github.com/leethomason/tinyxml2.git
     GIT_TAG 1dee28e51f9175a31955b9791c74c430fe13dc82
 )
 
-SET(BufferedSocket ${bufferedsocket_SOURCE_DIR})
+find_package(BufferedSocket REQUIRED)
+message("BufferedSocket dir: ${BufferedSocket_DIR}")
+set(BufferedSocket_INCLUDE_DIR ${BufferedSocket_DIR}/../../../include)
+include_directories(${BufferedSocket_INCLUDE_DIR})
+
 SET(tinyxml2 ${tinyxml2_SOURCE_DIR})
 
 option(BUILD_DEMO "Build DEMO" ON)
@@ -81,8 +79,7 @@ SET (LIB_INCLUDE
              include/libQuestMR/QuestFrameData.h
              include/libQuestMR/QuestCommunicator.h
              include/libQuestMR/QuestStringUtil.h
-             ${tinyxml2}/tinyxml2.h
-			 ${BufferedSocket}/BufferedSocket.h)
+             ${tinyxml2}/tinyxml2.h)
 
 SET (LIB_SRC
 		    src/frame.cpp
@@ -91,8 +88,7 @@ SET (LIB_SRC
             src/QuestFrameData.cpp
             src/QuestCommunicator.cpp
             src/QuestStringUtil.cpp
-            ${tinyxml2}/tinyxml2.cpp
-    		${BufferedSocket}/BufferedSocket.cpp)
+            ${tinyxml2}/tinyxml2.cpp)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include ${BufferedSocket} ${tinyxml2})
 
@@ -100,6 +96,8 @@ add_library(libQuestMR SHARED ${LIB_SRC} ${LIB_INCLUDE})
 target_compile_definitions(libQuestMR PRIVATE "LIBQUESTMR_EXPORTS")
 set_target_properties(libQuestMR PROPERTIES VERSION ${PROJECT_VERSION})
 #set_target_properties(libQuestMR PROPERTIES PUBLIC_HEADER ${LIB_INCLUDE})
+
+target_link_libraries(libQuestMR PRIVATE BufferedSocket)
 
 if(DEBUG_OCULUS_MRC_SOURCE)
 	target_compile_definitions(libQuestMR PRIVATE DEBUG_OCULUS_MRC_SOURCE)
@@ -147,33 +145,33 @@ endif()
 
 if(BUILD_DEMO)
 	target_link_libraries(libQuestMRDemo PRIVATE ${OpenCV_LIBS})
-	target_link_libraries(libQuestMRDemo LINK_PUBLIC libQuestMR)
+	target_link_libraries(libQuestMRDemo LINK_PUBLIC libQuestMR BufferedSocket)
 	target_link_libraries(demo-connectToMRC PRIVATE ${OpenCV_LIBS})
-	target_link_libraries(demo-connectToMRC LINK_PUBLIC libQuestMR)
+	target_link_libraries(demo-connectToMRC LINK_PUBLIC libQuestMR BufferedSocket)
 	target_link_libraries(demo-connectToMRC-raw PRIVATE ${OpenCV_LIBS})
-   	target_link_libraries(demo-connectToMRC-raw LINK_PUBLIC libQuestMR)
+   	target_link_libraries(demo-connectToMRC-raw LINK_PUBLIC libQuestMR BufferedSocket)
    	target_link_libraries(demo-capture PRIVATE ${OpenCV_LIBS})
-	target_link_libraries(demo-capture LINK_PUBLIC libQuestMR)
+	target_link_libraries(demo-capture LINK_PUBLIC libQuestMR BufferedSocket)
 	target_link_libraries(demo-playback PRIVATE ${OpenCV_LIBS})
-	target_link_libraries(demo-playback LINK_PUBLIC libQuestMR)
+	target_link_libraries(demo-playback LINK_PUBLIC libQuestMR BufferedSocket)
 	target_link_libraries(demo-loadQuestCalib PRIVATE ${OpenCV_LIBS})
-	target_link_libraries(demo-loadQuestCalib LINK_PUBLIC libQuestMR)
+	target_link_libraries(demo-loadQuestCalib LINK_PUBLIC libQuestMR BufferedSocket)
 	target_link_libraries(demo-uploadQuestCalib PRIVATE ${OpenCV_LIBS})
-	target_link_libraries(demo-uploadQuestCalib LINK_PUBLIC libQuestMR)
+	target_link_libraries(demo-uploadQuestCalib LINK_PUBLIC libQuestMR BufferedSocket)
 	target_link_libraries(demo-calibrateCameraIntrinsic-cv PRIVATE ${OpenCV_LIBS})
-	target_link_libraries(demo-calibrateCameraIntrinsic-cv LINK_PUBLIC libQuestMR)
+	target_link_libraries(demo-calibrateCameraIntrinsic-cv LINK_PUBLIC libQuestMR BufferedSocket)
 	if(USE_RPCameraInterface)
 		target_link_libraries(demo-calibrateCameraIntrinsic-RPCam PRIVATE ${OpenCV_LIBS})
-		target_link_libraries(demo-calibrateCameraIntrinsic-RPCam LINK_PUBLIC libQuestMR RPCameraInterface)
+		target_link_libraries(demo-calibrateCameraIntrinsic-RPCam LINK_PUBLIC libQuestMR BufferedSocket RPCameraInterface)
 		target_link_libraries(demo-calibrateCameraExtrinsic-RPCam PRIVATE ${OpenCV_LIBS})
-		target_link_libraries(demo-calibrateCameraExtrinsic-RPCam LINK_PUBLIC libQuestMR RPCameraInterface)
+		target_link_libraries(demo-calibrateCameraExtrinsic-RPCam LINK_PUBLIC libQuestMR BufferedSocket RPCameraInterface)
 		target_link_libraries(demo-testCalib-RPCam PRIVATE ${OpenCV_LIBS})
-		target_link_libraries(demo-testCalib-RPCam LINK_PUBLIC libQuestMR RPCameraInterface)
+		target_link_libraries(demo-testCalib-RPCam LINK_PUBLIC libQuestMR BufferedSocket RPCameraInterface)
 		target_link_libraries(demo-capture-RPCam PRIVATE ${OpenCV_LIBS})
-		target_link_libraries(demo-capture-RPCam LINK_PUBLIC libQuestMR RPCameraInterface)
+		target_link_libraries(demo-capture-RPCam LINK_PUBLIC libQuestMR BufferedSocket RPCameraInterface)
 		if(USE_ONNX_RUNTIME)
 			target_link_libraries(demo-segmentation-RPCam PRIVATE ${ONNX_RUNTIME_LIB} ${OpenCV_LIBS})
-			target_link_libraries(demo-segmentation-RPCam LINK_PUBLIC libQuestMR RPCameraInterface)
+			target_link_libraries(demo-segmentation-RPCam LINK_PUBLIC libQuestMR BufferedSocket RPCameraInterface)
 		endif()
 	endif()
 endif()
@@ -193,8 +191,10 @@ export(TARGETS libQuestMR FILE libQuestMRConfig.cmake)
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 
-set(CMAKE_THREAD_LIBS_INIT "-lpthread")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+if(NOT MSVC)
+	set(CMAKE_THREAD_LIBS_INIT "-lpthread")
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+endif()
 set(CMAKE_HAVE_THREADS_LIBRARY 1)
 set(CMAKE_USE_WIN32_THREADS_INIT 0)
 set(CMAKE_USE_PTHREADS_INIT 1)
