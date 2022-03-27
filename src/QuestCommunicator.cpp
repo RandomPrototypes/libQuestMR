@@ -1,5 +1,4 @@
 #include <libQuestMR/QuestCommunicator.h>
-#include <unistd.h>
 #include <string.h>
 #include <sstream>
 
