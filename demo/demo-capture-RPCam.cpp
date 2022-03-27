@@ -41,7 +41,7 @@ void captureFromQuest(const char *ipAddr)
 	cv::Ptr<cv::BackgroundSubtractor> pBackSub = cv::createBackgroundSubtractorMOG2();
 	
     QuestVideoMngr mngr;
-    QuestVideoSourceSocket videoSrc;
+    QuestVideoSourceBufferedSocket videoSrc;
     if(!videoSrc.Connect(ipAddr)) {
     	printf("can not connect to quest\n");
     	return;

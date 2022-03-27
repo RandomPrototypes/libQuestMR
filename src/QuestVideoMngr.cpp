@@ -16,7 +16,6 @@
 
 #include <libQuestMR/QuestVideoMngr.h>
 #include <libQuestMR/log.h>
-#include "BufferedSocket.h"
 #include <fcntl.h>
 
 namespace libQuestMR
@@ -446,37 +445,33 @@ void QuestVideoSourceFile::close()
 
 
 
-QuestVideoSourceSocket::QuestVideoSourceSocket()
-{
-	m_connectSocket = (void*)new BufferedSocket();
-}
 
 
-QuestVideoSourceSocket::~QuestVideoSourceSocket()
+
+QuestVideoSourceBufferedSocket::~QuestVideoSourceBufferedSocket()
 {
     Disconnect();
-    delete (BufferedSocket*)m_connectSocket;
 }
 
 
-bool QuestVideoSourceSocket::Connect(std::string ipaddr, uint32_t port)
+bool QuestVideoSourceBufferedSocket::Connect(std::string ipaddr, uint32_t port)
 {
-    return ((BufferedSocket*)m_connectSocket)->connect(ipaddr, port);
+    return m_connectSocket.connect(ipaddr, port);
 }
 
-int QuestVideoSourceSocket::recv(char *buf, size_t bufferSize)
+int QuestVideoSourceBufferedSocket::recv(char *buf, size_t bufferSize)
 {
-    return ((BufferedSocket*)m_connectSocket)->readData(buf, bufferSize);
+    return m_connectSocket.readData(buf, bufferSize);
 }
 
-bool QuestVideoSourceSocket::isValid()
+bool QuestVideoSourceBufferedSocket::isValid()
 {
-    return ((BufferedSocket*)m_connectSocket)->isConnected();
+    return m_connectSocket.isConnected();
 }
 
-void QuestVideoSourceSocket::Disconnect()
+void QuestVideoSourceBufferedSocket::Disconnect()
 {
-    ((BufferedSocket*)m_connectSocket)->disconnect();
+    m_connectSocket.disconnect();
 }
 
 }

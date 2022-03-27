@@ -7,7 +7,7 @@ using namespace libQuestMR;
 void captureFromQuest(const char *ipAddr, const char *outputFolder, const char *name)
 {
     QuestVideoMngr mngr;
-    QuestVideoSourceSocket videoSrc;
+    QuestVideoSourceBufferedSocket videoSrc;
     videoSrc.Connect(ipAddr);
     mngr.attachSource(&videoSrc);
     if(outputFolder != NULL) {

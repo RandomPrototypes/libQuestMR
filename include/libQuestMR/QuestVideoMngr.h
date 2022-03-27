@@ -13,6 +13,8 @@ extern "C" {
 
 #include "frame.h"
 
+#include "BufferedSocket.h"
+
 #ifdef LIBQUESTMR_USE_OPENCV
 #include <opencv2/opencv.hpp>
 #endif
@@ -36,18 +38,17 @@ public:
 	virtual int recv(char *buf, size_t bufferSize) = 0;
 };
 
-class LQMR_EXPORTS QuestVideoSourceSocket : public QuestVideoSource
+class LQMR_EXPORTS QuestVideoSourceBufferedSocket : public QuestVideoSource
 {
 public:
-	QuestVideoSourceSocket();
-	virtual ~QuestVideoSourceSocket();
+	virtual ~QuestVideoSourceBufferedSocket();
 	virtual bool isValid();
 	virtual int recv(char *buf, size_t bufferSize);
 
     bool Connect(std::string ipaddr, uint32_t port = OM_DEFAULT_PORT);
     void Disconnect();
 
-    void *m_connectSocket;//BufferedSocket* 
+    BufferedSocket m_connectSocket;
 };
 
 class LQMR_EXPORTS QuestVideoSourceFile : public QuestVideoSource
