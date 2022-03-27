@@ -11,15 +11,6 @@ extern "C" {
 }
 #endif
 
-/*#include <iostream>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>*/
-
 #include "frame.h"
 
 #include "BufferedSocket.h"
@@ -44,7 +35,7 @@ class RP_EXPORTS QuestVideoSource
 public:
 	virtual ~QuestVideoSource(){}
 	virtual bool isValid() = 0;
-	virtual ssize_t recv(char *buf, size_t bufferSize) = 0;
+	virtual int recv(char *buf, size_t bufferSize) = 0;
 };
 
 class RP_EXPORTS QuestVideoSourceBufferedSocket : public QuestVideoSource
@@ -52,7 +43,7 @@ class RP_EXPORTS QuestVideoSourceBufferedSocket : public QuestVideoSource
 public:
 	virtual ~QuestVideoSourceBufferedSocket();
 	virtual bool isValid();
-	virtual ssize_t recv(char *buf, size_t bufferSize);
+	virtual int recv(char *buf, size_t bufferSize);
 
     bool Connect(std::string ipaddr, uint32_t port = OM_DEFAULT_PORT);
     void Disconnect();
@@ -65,7 +56,7 @@ class RP_EXPORTS QuestVideoSourceFile : public QuestVideoSource
 public:
 	virtual ~QuestVideoSourceFile();
 	virtual bool isValid();
-	virtual ssize_t recv(char *buf, size_t bufferSize);
+	virtual int recv(char *buf, size_t bufferSize);
 
     void open(const char *filename);
     void close();

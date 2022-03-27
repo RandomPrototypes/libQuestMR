@@ -425,9 +425,9 @@ void QuestVideoSourceFile::open(const char *filename)
     file = fopen(filename, "rb");
 }
 
-ssize_t QuestVideoSourceFile::recv(char *buf, size_t bufferSize)
+int QuestVideoSourceFile::recv(char *buf, size_t bufferSize)
 {
-    return ::fread(buf, 1, bufferSize, file);
+    return static_cast<int>(::fread(buf, 1, bufferSize, file));
 }
 
 bool QuestVideoSourceFile::isValid()
@@ -459,7 +459,7 @@ bool QuestVideoSourceBufferedSocket::Connect(std::string ipaddr, uint32_t port)
     return m_connectSocket.connect(ipaddr, port);
 }
 
-ssize_t QuestVideoSourceBufferedSocket::recv(char *buf, size_t bufferSize)
+int QuestVideoSourceBufferedSocket::recv(char *buf, size_t bufferSize)
 {
     return m_connectSocket.readData(buf, bufferSize);
 }
