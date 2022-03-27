@@ -87,12 +87,12 @@ jobs:
     - name: Configure CMake
       if: runner.os != 'Windows'
       run: |
-        cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_OPENCV=ON -DBUILD_DEMO=ON -DUSE_RPCameraInterface=ON -DUSE_FFMPEG=ON -DRPCameraInterface_DIR=${{github.workspace}}/RPCameraInterface/install/lib/cmake
+        cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_OPENCV=ON -DBUILD_DEMO=ON -DUSE_RPCameraInterface=ON -DUSE_FFMPEG=ON -DRPCameraInterface_DIR=${{github.workspace}}/RPCameraInterface/install/lib/cmake/RPCameraInterface
 
     - name: Configure CMake
       if: runner.os == 'Windows'
       run: |
-        cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_OPENCV=ON -DBUILD_DEMO=ON -DUSE_RPCameraInterface=ON -DUSE_FFMPEG=ON -DRPCameraInterface_DIR=${{github.workspace}}/RPCameraInterface/install/lib/cmake -DFFMPEG_DIR=${{github.workspace}}/ffmpeg
+        cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_OPENCV=ON -DBUILD_DEMO=ON -DUSE_RPCameraInterface=ON -DUSE_FFMPEG=ON -DRPCameraInterface_DIR=${{github.workspace}}/RPCameraInterface/install/lib/cmake/RPCameraInterface -DFFMPEG_DIR=${{github.workspace}}/ffmpeg
 
     - name: Build
       # Build your program with the given configuration
