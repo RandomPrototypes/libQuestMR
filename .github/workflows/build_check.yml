@@ -28,14 +28,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Install libav and OpenCV
-      if: runner.os == 'Linux'
-      run: |
-        sudo apt update
-        sudo apt -y install pkg-config 
-        sudo apt -y install libavcodec-dev libavformat-dev libswscale-dev libavdevice-dev libavfilter-dev
-        sudo apt -y install libopencv-dev
-    
     - name: Install BufferedSocket
       run: |
         cd ${{github.workspace}}
@@ -47,6 +39,14 @@ jobs:
         cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/BufferedSocket/install ..
         cmake --build ${{github.workspace}}/BufferedSocket/build --config ${{env.BUILD_TYPE}}
         cmake --install ${{github.workspace}}/BufferedSocket/build
+
+    - name: Install libav and OpenCV
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt update
+        sudo apt -y install pkg-config 
+        sudo apt -y install libavcodec-dev libavformat-dev libswscale-dev libavdevice-dev libavfilter-dev
+        sudo apt -y install libopencv-dev
 
     - name: Install libav and OpenCV
       if: runner.os == 'Windows'

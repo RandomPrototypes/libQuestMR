@@ -5,13 +5,13 @@
 namespace libQuestMR
 {
 
-std::string QuestFrameData::toString(const std::vector<double>& list)
+std::string QuestFrameData::toString(double *list, int size)
 {
     std::string str;
-    for(size_t i = 0; i < list.size(); i++)
+    for(size_t i = 0; i < size; i++)
     {
         str += std::to_string(list[i]);
-        if(i+1 < list.size())
+        if(i+1 < size)
             str += ", ";
     }
     return str;
@@ -22,14 +22,14 @@ std::string QuestFrameData::toString()
     std::string str;
     str += "frame: "+std::to_string(frame)+"\n";
     str += "time: "+std::to_string(time)+"\n";
-    str += "head_pos: "+toString(head_pos)+"\n";
-    str += "head_rot: "+toString(head_rot)+"\n";
-    str += "left_hand_pos: "+toString(left_hand_pos)+"\n";
-    str += "left_hand_rot: "+toString(left_hand_rot)+"\n";
-    str += "right_hand_pos: "+toString(right_hand_pos)+"\n";
-    str += "right_hand_rot: "+toString(right_hand_rot)+"\n";
-    str += "raw_pos: "+toString(raw_pos)+"\n";
-    str += "raw_rot: "+toString(raw_rot)+"\n";
+    str += "head_pos: "+toString(head_pos, 3)+"\n";
+    str += "head_rot: "+toString(head_rot, 4)+"\n";
+    str += "left_hand_pos: "+toString(left_hand_pos, 3)+"\n";
+    str += "left_hand_rot: "+toString(left_hand_rot, 4)+"\n";
+    str += "right_hand_pos: "+toString(right_hand_pos, 3)+"\n";
+    str += "right_hand_rot: "+toString(right_hand_rot, 4)+"\n";
+    str += "raw_pos: "+toString(raw_pos, 3)+"\n";
+    str += "raw_rot: "+toString(raw_rot, 4)+"\n";
     str += "lht: "+std::to_string(lht)+"\n";
     str += "lhv: "+std::to_string(lhv)+"\n";
     str += "rht: "+std::to_string(rht)+"\n";
@@ -50,21 +50,21 @@ void QuestFrameData::parse(const char* str, int length)
         else if(name == "time")
             time = parseDouble(str, length, &currentPos);
         else if(name == "head_pos")
-            head_pos = parseVectorDouble(str, length, &currentPos, 3);
+            parseVectorDouble(str, length, &currentPos, 3, head_pos);
         else if(name == "head_rot")
-            head_rot = parseVectorDouble(str, length, &currentPos, 4);
+            parseVectorDouble(str, length, &currentPos, 4, head_rot);
         else if(name == "left_hand_pos")
-            left_hand_pos = parseVectorDouble(str, length, &currentPos, 3);
+            parseVectorDouble(str, length, &currentPos, 3, left_hand_pos);
         else if(name == "left_hand_rot")
-            left_hand_rot = parseVectorDouble(str, length, &currentPos, 4);
+            parseVectorDouble(str, length, &currentPos, 4, left_hand_rot);
         else if(name == "right_hand_pos")
-            right_hand_pos = parseVectorDouble(str, length, &currentPos, 3);
+            parseVectorDouble(str, length, &currentPos, 3, right_hand_pos);
         else if(name == "right_hand_rot")
-            right_hand_rot = parseVectorDouble(str, length, &currentPos, 4);
+            parseVectorDouble(str, length, &currentPos, 4, right_hand_rot);
         else if(name == "raw_pos")
-            raw_pos = parseVectorDouble(str, length, &currentPos, 3);
+            parseVectorDouble(str, length, &currentPos, 3, raw_pos);
         else if(name == "raw_rot")
-            raw_rot = parseVectorDouble(str, length, &currentPos, 4);
+            parseVectorDouble(str, length, &currentPos, 4, raw_rot);
         else if(name == "lht")
             lht = parseInt(str, length, &currentPos);
         else if(name == "lhv")
@@ -84,38 +84,32 @@ void QuestFrameData::parse(const char* str, int length)
 
 bool QuestFrameData::isLeftHandValid() const
 {
-    return lht && lhv && left_hand_pos.size() == 3 && left_hand_rot.size() == 4;
+    return lht && lhv;//todo : add check if data got read correctly
 }
 
 bool QuestFrameData::isRightHandValid() const
 {
-    return rht && rhv && right_hand_pos.size() == 3 && right_hand_rot.size() == 4;
+    return rht && rhv;//todo : add check if data got read correctly
 }
 
 bool QuestFrameData::isHeadValid() const
 {
-    return head_pos.size() == 3 && head_rot.size() == 4;
+    return true;//todo : add check if data got read correctly
 }
 
 #ifdef LIBQUESTMR_USE_OPENCV
 cv::Point3d QuestFrameData::getLeftHandPos() const
 {
-    if(left_hand_pos.size() != 3)
-        return cv::Point3d(0,0,0);
     return cv::Point3d(left_hand_pos[0], left_hand_pos[1], left_hand_pos[2]);
 }
 
 cv::Point3d QuestFrameData::getRightHandPos() const
 {
-    if(right_hand_pos.size() != 3)
-        return cv::Point3d(0,0,0);
     return cv::Point3d(right_hand_pos[0], right_hand_pos[1], right_hand_pos[2]);
 }
 
 cv::Point3d QuestFrameData::getHeadPos() const
 {
-    if(head_pos.size() != 3)
-        return cv::Point3d(0,0,0);
     return cv::Point3d(head_pos[0], head_pos[1], head_pos[2]);
 }
 #endif

@@ -19,14 +19,16 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <string>
 #include <memory>
 
-//#define OM_LOG(level, format, ...) \
+/*
+#define OM_LOG(level, format, ...) \
 	blog(level, "[OculusMrcSource]: " format, ##__VA_ARGS__)
-//#define OM_LOG_S(source, level, format, ...) \
+#define OM_LOG_S(source, level, format, ...) \
 	blog(level, "[OculusMrcSource '%s']: " format, \
 			obs_source_get_name(source), ##__VA_ARGS__)
 
-//#define OM_BLOG(level, format, ...) \
+#define OM_BLOG(level, format, ...) \
 	OM_LOG_S(this->m_src, level, format, ##__VA_ARGS__)
+*/
 	
 #ifdef DEBUG_OCULUS_MRC_SOURCE
 
@@ -34,8 +36,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 	printf("[OculusMrcSource]: " format "\n", ##__VA_ARGS__)
 
 #define OM_LOG_S(source, level, format, ...) \
-	printf("[OculusMrcSource '%s']: " format "\n", \
-			"TODO", ##__VA_ARGS__)
+	printf("[OculusMrcSource '%s']: " format "\n",  "TODO", ##__VA_ARGS__)
 
 #else
 

@@ -7,6 +7,7 @@
 #include "config.h"
 #include "QuestFrameData.h"
 #include "BufferedSocket.h"
+#include "PortableTypes.h"
 
 namespace libQuestMR
 {
@@ -15,7 +16,7 @@ class LQMR_EXPORTS QuestCommunicatorMessage
 {
 public:
     unsigned int type;
-    std::vector<char> data;
+    PortableString data;
 };
 
 class LQMR_EXPORTS QuestCommunicator

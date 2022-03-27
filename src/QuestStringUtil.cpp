@@ -105,25 +105,23 @@ double parseDouble(const char *str, int length, int *currentPos)
     return std::atof(parseDoubleString(str, length, currentPos).c_str());
 }
 
-std::vector<double> parseVectorDouble(const char *str, int length, int *currentPos, int nbElem)
+void parseVectorDouble(const char *str, int length, int *currentPos, int nbElem, double *result)
 {
-    std::vector<double> result;
     for(int i = 0; i < nbElem; i++)
     {
-        result.push_back(parseDouble(str, length, currentPos));
+        result[i] = parseDouble(str, length, currentPos);
         if(i+1 < nbElem)
         {
             skipEmpty(str, length, currentPos);
             if(*currentPos >= length || str[*currentPos] != ',')
             {
                 printf("error parsing vector double\n");
-                return std::vector<double>();
+                return ;
             }
             (*currentPos)++;
             skipEmpty(str, length, currentPos);
         }
     }
-    return result;
 }
 
 

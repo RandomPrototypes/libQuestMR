@@ -11,29 +11,43 @@
 #include <opencv2/opencv.hpp>
 #endif
 
+#include "PortableTypes.h"
+
 namespace libQuestMR
 {
+
+class QuestCalibDataPrivateData;
 
 class LQMR_EXPORTS QuestCalibData
 {
 public:
-    std::string camera_id;
-    std::string camera_name;
+    PortableString camera_id;
+    PortableString camera_name;
     int image_width, image_height;//image size
-    std::vector<double> camera_matrix;//3x3 intrinsic matrix
-    std::vector<double> distortion_coefficients;//8x1 distortion coeffs matrix
-    std::vector<double> translation;//3x1 translation (x,y,z)
-    std::vector<double> rotation;//4x1 quaternion (x,y,z,w)
+    double camera_matrix[9];//3x3 intrinsic matrix
+    double distortion_coefficients[8];//8x1 distortion coeffs matrix
+    double translation[3];//3x1 translation (x,y,z)
+    double rotation[4];//4x1 quaternion (x,y,z,w)
     int attachedDevice;
     int camDelayMs;
     unsigned char chromaKeyColorRed, chromaKeyColorGreen, chromaKeyColorBlue;
     double chromaKeySimilarity;
     double chromaKeySmoothRange;
     double chromaKeySpillRange;
-    std::vector<double> raw_translation;//3x1 raw translation (x,y,z), pose of the tracking space
-    std::vector<double> raw_rotation;//4x1 raw quaternion (x,y,z,w), pose of the tracking space
+    double raw_translation[3];//3x1 raw translation (x,y,z), pose of the tracking space
+    double raw_rotation[4];//4x1 raw quaternion (x,y,z,w), pose of the tracking space
 
     QuestCalibData();
+    QuestCalibData(const QuestCalibData& other);
+    QuestCalibData& operator=(const QuestCalibData& other);
+    ~QuestCalibData();
+
+    void copyFrom(const QuestCalibData& other);
+
+    const char *getCameraId() const;
+    void setCameraId(const char *id);
+    const char *getCameraName() const;
+    void setCameraName(const char *name);
 
     void loadXML(tinyxml2::XMLDocument& doc);
 

@@ -239,8 +239,8 @@ void QuestVideoMngr::VideoTickImpl(bool skipOldFrames)
 		                else
 		                {
 	#if _DEBUG
-		                    std::chrono::duration<double> timePassed = std::chrono::system_clock::now() - m_frameCollection.GetFirstFrameTime();
-		                    OM_BLOG(LOG_DEBUG, "[%f][VIDEO_DATA] size %d width %d height %d format %d", timePassed.count(), packet->size, picture->width, picture->height, picture->format);
+		                    double timePassed = m_frameCollection.GetNbTickSinceFirstFrame();
+		                    OM_BLOG(LOG_DEBUG, "[%lf][VIDEO_DATA] size %d width %d height %d format %d", timePassed, packet->size, picture->width, picture->height, picture->format);
 	#endif
 
 		                    while (m_cachedAudioFrames.size() > 0 && m_cachedAudioFrames[0].first <= m_videoFrameIndex)
@@ -370,8 +370,8 @@ void QuestVideoMngr::VideoTickImpl(bool skipOldFrames)
                 m_cachedAudioFrames.push_back(std::make_pair(m_audioFrameIndex, frame));
                 ++m_audioFrameIndex;
 #if _DEBUG
-                std::chrono::duration<double> timePassed = std::chrono::system_clock::now() - m_frameCollection.GetFirstFrameTime();
-                OM_BLOG(LOG_DEBUG, "[%f][AUDIO_DATA] timestamp %llu", timePassed.count());
+                double timePassed = m_frameCollection.GetNbTickSinceFirstFrame();
+                OM_BLOG(LOG_DEBUG, "[%lf][AUDIO_DATA] timestamp", timePassed);
 #endif
             }
             else

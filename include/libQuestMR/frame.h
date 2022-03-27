@@ -51,11 +51,15 @@ struct Frame
 
 //typedef std::vector<uint8_t> Frame;
 
+class FrameCollectionPrivateData;
+
 class LQMR_EXPORTS FrameCollection
 {
 public:
 	FrameCollection();
 	~FrameCollection();
+	FrameCollection(FrameCollection const&) = delete;
+    FrameCollection& operator=(FrameCollection const&) = delete;
 
 	void Reset();
 
@@ -77,33 +81,19 @@ public:
 		return m_firstFrameTimeSet && !m_hasError;
 	}
 
-	std::chrono::time_point<std::chrono::system_clock> GetFirstFrameTime() const
-	{
-		if (m_firstFrameTimeSet)
-		{
-			return m_firstFrameTime;
-		}
-		else
-		{
-			return std::chrono::system_clock::now();
-		}
-	}
+	double GetNbTickSinceFirstFrame() const;
 
 private:
 	uint32_t Magic = 0x2877AF94;
 
 	bool m_firstFrameTimeSet = false;
-	std::chrono::time_point<std::chrono::system_clock> m_firstFrameTime;
-
-	std::vector<uint8_t> m_scratchPad;
-	std::list<std::shared_ptr<Frame>> m_frames;
-
-	std::mutex m_frameMutex;
 
 	bool m_hasError;
 
 	FILE *recordingFile;
 	FILE *timestampFile;
+
+	FrameCollectionPrivateData *privateData;//store data that can not pass through the dll
 };
 
 }

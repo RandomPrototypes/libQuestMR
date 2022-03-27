@@ -17,20 +17,20 @@ class LQMR_EXPORTS QuestFrameData
 public:
     int frame;
     double time;
-    std::vector<double> head_pos;
-    std::vector<double> head_rot;
-    std::vector<double> left_hand_pos;
-    std::vector<double> left_hand_rot;
-    std::vector<double> right_hand_pos;
-    std::vector<double> right_hand_rot;
-    std::vector<double> raw_pos;
-    std::vector<double> raw_rot;
+    double head_pos[3];
+    double head_rot[4];
+    double left_hand_pos[3];
+    double left_hand_rot[4];
+    double right_hand_pos[3];
+    double right_hand_rot[4];
+    double raw_pos[3];
+    double raw_rot[4];
     int lht;
     int lhv;
     int rht;
     int rhv;
 
-    std::string toString(const std::vector<double>& list);
+    std::string toString(double *list, int size);
 
     std::string toString();
 

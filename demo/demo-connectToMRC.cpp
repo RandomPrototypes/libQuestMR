@@ -18,10 +18,10 @@ void connectToMRC(const char *ipAddr)
             if(message.type == 33)
             {
                 QuestFrameData frame;
-                frame.parse(&(message.data[0]), message.data.size()-1);
+                frame.parse(message.data.c_str(), message.data.size()-1);
                 printf("frame data:\n%s\n", frame.toString().c_str());
             }
-            else printf("raw data:\n%.*s\n\n", (int)message.data.size()-1, &(message.data[0]));
+            else printf("raw data:\n%.*s\n\n", (int)message.data.size()-1, message.data.c_str());
         }
     } else {
     	printf("Can not connect to Oculus Mixed Reality Capture app!!\nPlease verify that the app is opened on your quest and the ip address is correct!!\n");

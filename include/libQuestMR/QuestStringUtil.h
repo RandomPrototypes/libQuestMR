@@ -32,7 +32,7 @@ LQMR_EXPORTS std::string parseIntString(const char *str, int length, int *curren
 LQMR_EXPORTS int parseInt(const char *str, int length, int *currentPos);
 LQMR_EXPORTS std::string parseDoubleString(const char *str, int length, int *currentPos);
 LQMR_EXPORTS double parseDouble(const char *str, int length, int *currentPos);
-LQMR_EXPORTS std::vector<double> parseVectorDouble(const char *str, int length, int *currentPos, int nbElem);
+LQMR_EXPORTS void parseVectorDouble(const char *str, int length, int *currentPos, int nbElem, double *result);
 
 
 }

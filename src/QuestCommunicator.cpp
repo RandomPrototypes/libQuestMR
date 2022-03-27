@@ -87,13 +87,15 @@ bool QuestCommunicator::readMessage(QuestCommunicatorMessage *output)
     output->type = toUInt32(header+4);
     uint32_t length = toUInt32(header+8);
     printf("%u bytes to read\n", length);
-    output->data.resize(length+1);
-    output->data[length] = 0;
-    if(sock.readNBytes(&(output->data[0]), length) != length)
+    std::vector<char> data;
+    data.resize(length+1);
+    data[length] = 0;
+    if(sock.readNBytes(&data[0], length) != length)
     {
         onError("Can not read message content");
         return false;
     }
+    output->data = PortableString(&data[0], data.size());
     return true;
 }
 
@@ -102,8 +104,9 @@ bool QuestCommunicator::sendMessage(const QuestCommunicatorMessage& msg)
     int totalSize = 12+(int)msg.data.size();
     char *data = new char[totalSize];
     createHeader(data, msg.type, (int)msg.data.size());
+    const char *msgData = msg.data.c_str();
     for(size_t i = 0; i < msg.data.size(); i++)
-        data[i+12] = msg.data[i];
+        data[i+12] = msgData[i];
     int ret = sendRawData(data, totalSize);
     delete [] data;
     return ret == totalSize;
@@ -261,8 +264,7 @@ void QuestCommunicatorThreadData::threadFunc()
         if(needUploadCalibData)
         {
             mutex.lock();
-            message.data.resize(calibData.size());
-            memcpy(&(message.data[0]), &(calibData[0]), calibData.size());
+            message.data = PortableString(&calibData[0], calibData.size());
             message.type = 36;
             bool ret = questCom->sendMessage(message);
             needUploadCalibData = false;
@@ -276,7 +278,7 @@ void QuestCommunicatorThreadData::threadFunc()
         if(message.type == 33)
         {
             QuestFrameData frame;
-            frame.parse(&(message.data[0]), (int)message.data.size()-1);
+            frame.parse(message.data.c_str(), (int)message.data.size()-1);
             //printf("frame data:\n%s\n", frame.toString().c_str());
 
             pushFrameData(frame);

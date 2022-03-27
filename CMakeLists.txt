@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.11.0)
 project(libQuestMR VERSION 0.1 LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 11)
 
 include(FetchContent)
 
@@ -79,6 +80,7 @@ SET (LIB_INCLUDE
              include/libQuestMR/QuestFrameData.h
              include/libQuestMR/QuestCommunicator.h
              include/libQuestMR/QuestStringUtil.h
+			 include/libQuestMR/PortableTypes.h
              ${tinyxml2}/tinyxml2.h)
 
 SET (LIB_SRC
@@ -88,6 +90,7 @@ SET (LIB_SRC
             src/QuestFrameData.cpp
             src/QuestCommunicator.cpp
             src/QuestStringUtil.cpp
+			src/PortableTypes.cpp
             ${tinyxml2}/tinyxml2.cpp)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include ${BufferedSocket} ${tinyxml2})
@@ -96,6 +99,8 @@ add_library(libQuestMR SHARED ${LIB_SRC} ${LIB_INCLUDE})
 target_compile_definitions(libQuestMR PRIVATE "LIBQUESTMR_EXPORTS")
 set_target_properties(libQuestMR PROPERTIES VERSION ${PROJECT_VERSION})
 #set_target_properties(libQuestMR PROPERTIES PUBLIC_HEADER ${LIB_INCLUDE})
+
+target_compile_definitions(libQuestMR PRIVATE "_CRT_SECURE_NO_WARNINGS")
 
 target_link_libraries(libQuestMR PRIVATE BufferedSocket)
 

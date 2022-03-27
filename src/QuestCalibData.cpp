@@ -52,30 +52,35 @@ std::vector<std::string> splitStringByWhitespace(const std::string& str)
     return list;
 }
 
-std::vector<double> getDoubleList(tinyxml2::XMLElement *rootElem, const char *nodeName)
+bool getDoubleList(tinyxml2::XMLElement *rootElem, const char *nodeName, double *buf, int maxLength)
 {
     std::string str = getString(rootElem, nodeName);
     std::vector<std::string> list = splitStringByWhitespace(str);
-    std::vector<double> listDouble(list.size());
+    if(list.size() > maxLength)
+        return false;
     for(int i = 0; i < list.size(); i++)
     {
         std::istringstream os(list[i]);
-        os >> listDouble[i];
+        os >> buf[i];
     }
-    return listDouble;
+    return true;
 }
 
-std::vector<double> getMatrix(tinyxml2::XMLElement *rootElem, const char *nodeName, int *rows = NULL, int *cols = NULL, std::string *type = NULL)
+bool getMatrix(tinyxml2::XMLElement *rootElem, const char *nodeName, double *buf, int maxLength, int *rows = NULL, int *cols = NULL, std::string *type = NULL)
 {
     tinyxml2::XMLElement *elem = rootElem->FirstChildElement(nodeName);
+    int R = getInt(elem, "rows");
+    int C = getInt(elem, "cols");
     if(rows != NULL)
-        *rows = getInt(elem, "rows");
+        *rows = R;
     if(cols != NULL)
-        *cols = getInt(elem, "cols");
+        *cols = C;
+    if(C*R > maxLength)
+        return false;
     if(type != NULL)
         *type = getString(elem, "dt");
     std::string data = getString(elem, "data");
-    return getDoubleList(elem, "data");
+    return getDoubleList(elem, "data", buf, maxLength);
 }
 
 template<typename T>
@@ -95,16 +100,12 @@ std::string makeXmlString<unsigned char>(std::string tag, unsigned char val)
 }
 
 template<typename T>
-std::string makeXmlStringFromMatrix(std::string tag, const std::vector<T>& data, int rows, int cols, std::string dt = "d")
+std::string makeXmlStringFromMatrix(std::string tag, const T* data, int rows, int cols, std::string dt = "d")
 {
-    if(rows < 0)
-        rows = static_cast<int>(data.size()) / cols;
-    if(cols < 0)
-        cols = static_cast<int>(data.size()) / rows;
     std::stringstream ss;
     ss << "<" << tag << " type_id=\"opencv-matrix\"><rows>" << rows << "</rows><cols>" << cols << "</cols><dt>" << dt << "</dt><data>";
     ss << std::scientific << std::setprecision(16);
-    for(int i = 0; i < data.size(); i++)
+    for(int i = 0; i < rows * cols; i++)
         ss << data[i] << " ";
     ss << "</data></"+tag+">";
     return ss.str();
@@ -114,17 +115,8 @@ std::string makeXmlStringFromMatrix(std::string tag, const std::vector<T>& data,
 
 
 #ifdef LIBQUESTMR_USE_OPENCV
-cv::Mat vec2mat(const std::vector<double>& vec, int rows, int cols)
+cv::Mat vec2mat(const double* vec, int rows, int cols)
 {
-    if(rows == -1)
-        rows = static_cast<int>(vec.size()) / cols;
-    if(cols == -1)
-        cols = static_cast<int>(vec.size()) / rows;
-    if(vec.size() != rows*cols)
-    {
-        printf("vec2mat error : %d != %d*%d\n", (int)vec.size(), rows, cols);
-        return cv::Mat();
-    }
     cv::Mat mat(rows, cols, CV_64F);
     for(int i = 0; i < rows; i++)
         for(int j = 0; j < cols; j++)
@@ -133,27 +125,30 @@ cv::Mat vec2mat(const std::vector<double>& vec, int rows, int cols)
 }
 
 template<typename T>
-std::vector<T> mat2vec(const cv::Mat& mat)
+void mat2vec(const cv::Mat& mat, T *vec, int length)
 {
-    std::vector<T> vec;
+    if(mat.cols * mat.rows != length) {
+        throw std::runtime_error("mat.cols * mat.rows != length");
+    }
     if(mat.type() == CV_32F) {
 		for(int i = 0; i < mat.rows; i++)
 		{
+            T *dst = vec + i * mat.cols;
 		    const float *data = mat.ptr<float>(i);
 		    for(int j = 0; j < mat.cols; j++)
-		        vec.push_back(data[j]);
+		        dst[j] = (T)data[j];
 		}
 	} else if(mat.type() == CV_64F) {
 		for(int i = 0; i < mat.rows; i++)
 		{
+            T *dst = vec + i * mat.cols;
 		    const double *data = mat.ptr<double>(i);
 		    for(int j = 0; j < mat.cols; j++)
-		        vec.push_back(data[j]);
+		        dst[j] = (T)data[j];
 		}
 	} else if(!mat.empty()) {
 		throw std::runtime_error("wrong mat type");
 	}
-    return vec;
 }
 
 cv::Mat quaternion2rotationMat(const cv::Mat& quaternion)
@@ -258,14 +253,6 @@ cv::Mat RtMat2tvec(const cv::Mat Rt)
 }
 #endif
 
-
-
-
-
-
-
-
-
 QuestCalibData::QuestCalibData()
 {
     image_width = 0;
@@ -280,6 +267,64 @@ QuestCalibData::QuestCalibData()
     chromaKeySpillRange = 0;
 }
 
+QuestCalibData::QuestCalibData(const QuestCalibData& other)
+{
+    copyFrom(other);
+}
+
+QuestCalibData& QuestCalibData::operator=(const QuestCalibData& other)
+{
+    copyFrom(other);
+    return *this;
+}
+
+void QuestCalibData::copyFrom(const QuestCalibData& other)
+{
+    camera_id = other.camera_id;
+    camera_name = other.camera_name;
+    image_width = other.image_width;
+    image_height = other.image_height;
+    memcpy(camera_matrix, other.camera_matrix, sizeof(camera_matrix));
+    memcpy(distortion_coefficients, other.distortion_coefficients, sizeof(distortion_coefficients));
+    memcpy(translation, other.translation, sizeof(translation));
+    memcpy(rotation, other.rotation, sizeof(rotation));
+    attachedDevice = other.attachedDevice;
+    camDelayMs = other.camDelayMs;
+    chromaKeyColorRed = other.chromaKeyColorRed;
+    chromaKeyColorGreen = other.chromaKeyColorGreen;
+    chromaKeyColorBlue = other.chromaKeyColorBlue;
+    chromaKeySimilarity = other.chromaKeySimilarity;
+    chromaKeySmoothRange = other.chromaKeySmoothRange;
+    chromaKeySpillRange = other.chromaKeySpillRange;
+    memcpy(raw_translation, other.raw_translation, sizeof(raw_translation));
+    memcpy(raw_rotation, other.raw_rotation, sizeof(raw_rotation));
+
+}
+
+QuestCalibData::~QuestCalibData()
+{
+}
+
+const char *QuestCalibData::getCameraId() const
+{
+    return camera_id.c_str();
+}
+
+void QuestCalibData::setCameraId(const char *id)
+{
+    camera_id = id;
+}
+
+const char *QuestCalibData::getCameraName() const
+{
+    return camera_name.c_str();
+}
+
+void QuestCalibData::setCameraName(const char *name)
+{
+    camera_name = name;
+}
+
 void QuestCalibData::loadXML(tinyxml2::XMLDocument& doc)
 {
     tinyxml2::XMLElement *rootElem = doc.FirstChildElement("opencv_storage");
@@ -287,14 +332,14 @@ void QuestCalibData::loadXML(tinyxml2::XMLDocument& doc)
     	printf("can not load calib XML\n");
     	return ;
     }
-    camera_id = getString(rootElem, "camera_id");
-    camera_name = getString(rootElem, "camera_name");
+    setCameraId(getString(rootElem, "camera_id").c_str());
+    setCameraName(getString(rootElem, "camera_name").c_str());
     image_width = getInt(rootElem, "image_width");
     image_height = getInt(rootElem, "image_height");
-    camera_matrix = getMatrix(rootElem, "camera_matrix");
-    distortion_coefficients = getMatrix(rootElem, "distortion_coefficients");
-    translation = getMatrix(rootElem, "translation");
-    rotation = getMatrix(rootElem, "rotation");
+    getMatrix(rootElem, "camera_matrix", camera_matrix, 9);
+    getMatrix(rootElem, "distortion_coefficients", distortion_coefficients, 8);
+    getMatrix(rootElem, "translation", translation, 3);
+    getMatrix(rootElem, "rotation", rotation, 4);
     attachedDevice = getInt(rootElem, "attachedDevice");
     camDelayMs = getInt(rootElem, "camDelayMs");
     chromaKeyColorRed = getInt(rootElem, "chromaKeyColorRed");
@@ -303,16 +348,16 @@ void QuestCalibData::loadXML(tinyxml2::XMLDocument& doc)
     chromaKeySimilarity = getDouble(rootElem, "chromaKeySimilarity");
     chromaKeySmoothRange = getDouble(rootElem, "chromaKeySmoothRange");
     chromaKeySpillRange = getDouble(rootElem, "chromaKeySpillRange");
-    raw_translation = getMatrix(rootElem, "raw_translation");
-    raw_rotation = getMatrix(rootElem, "raw_rotation");
+    getMatrix(rootElem, "raw_translation", raw_translation, 3);
+    getMatrix(rootElem, "raw_rotation", raw_rotation, 4);
 }
 
 std::string QuestCalibData::generateXMLString() const
 {
     std::stringstream ss;
     ss << "<?xml version=\"1.0\"?><opencv_storage>";
-    ss << makeXmlString("camera_id", camera_id);
-    ss << makeXmlString("camera_name", camera_name);
+    ss << makeXmlString("camera_id", std::string(getCameraId()));
+    ss << makeXmlString("camera_name", std::string(getCameraName()));
     ss << makeXmlString("image_width", image_width);
     ss << makeXmlString("image_height", image_height);
     ss << makeXmlStringFromMatrix("camera_matrix", camera_matrix, 3, 3);
@@ -349,9 +394,9 @@ void QuestCalibData::loadXMLString(const char *str)
 
 #ifdef LIBQUESTMR_USE_OPENCV
 cv::Mat QuestCalibData::getCameraMatrix() const { return vec2mat(camera_matrix, 3, 3); }
-void    QuestCalibData::setCameraMatrix(const cv::Mat& K) { camera_matrix = mat2vec<double>(K); }
-cv::Mat QuestCalibData::getDistCoeffs() const { return vec2mat(distortion_coefficients, -1, 1); }
-void    QuestCalibData::setDistCoeffs(const cv::Mat& distCoeffs) { distortion_coefficients = mat2vec<double>(distCoeffs); }
+void    QuestCalibData::setCameraMatrix(const cv::Mat& K) { mat2vec<double>(K, camera_matrix, 9); }
+cv::Mat QuestCalibData::getDistCoeffs() const { return vec2mat(distortion_coefficients, 8, 1); }
+void    QuestCalibData::setDistCoeffs(const cv::Mat& distCoeffs) { mat2vec<double>(distCoeffs, distortion_coefficients, 8); }
 cv::Mat QuestCalibData::getTranslation() const { return vec2mat(translation, 3, 1); }
 cv::Mat QuestCalibData::getRotation() const { return vec2mat(rotation, 4, 1); }
 cv::Mat QuestCalibData::getRawTranslation() const { return vec2mat(raw_translation, 3, 1); }
@@ -420,8 +465,9 @@ bool QuestCalibData::calibrateCamPose(const std::vector<cv::Point3d>& listPoint3
     //cv::Quat<double> rot = cv::Quat<double>::createFromRotMat(Rt_inv(cv::Rect(0,0,3,3)));
     //rotation = {rot.x, rot.y, rot.z, rot.w};
     cv::Mat rot = rotationMat2quaternion(Rt_inv(cv::Rect(0,0,3,3)));
-    rotation = {rot.at<double>(0,0), rot.at<double>(1,0), rot.at<double>(2,0), rot.at<double>(3,0)};
-    translation = mat2vec<double>(Rt_inv(cv::Rect(3,0,1,3)));
+    for(int i = 0; i < 4; i++)
+        rotation[i] = rot.at<double>(i,0);
+    mat2vec<double>(Rt_inv(cv::Rect(3,0,1,3)), translation, 3);
     return true;
 }
 #endif
