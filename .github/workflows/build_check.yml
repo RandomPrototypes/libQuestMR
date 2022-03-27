@@ -89,7 +89,7 @@ jobs:
     - name: Configure CMake
       if: runner.os != 'Windows'
       run: |
-        cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_OPENCV=ON -DBUILD_DEMO=OFF -DUSE_RPCameraInterface=ON -DUSE_FFMPEG=ON -DRPCameraInterface_DIR=${{github.workspace}}/RPCameraInterface/install/lib/cmake/RPCameraInterface
+        cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_OPENCV=ON -DBUILD_DEMO=ON -DUSE_RPCameraInterface=ON -DUSE_FFMPEG=ON -DRPCameraInterface_DIR=${{github.workspace}}/RPCameraInterface/install/lib/cmake/RPCameraInterface
 
     - name: Configure CMake
       if: runner.os == 'Windows'
