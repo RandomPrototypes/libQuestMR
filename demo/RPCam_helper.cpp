@@ -9,7 +9,7 @@ bool configureCamera(std::shared_ptr<CameraInterface>& cam, ImageFormat *resultF
     camEnum->detectCameras();
     printf("%d cameras detected\n", camEnum->count());
     for(int i = 0; i < camEnum->count(); i++) {
-        printf("%d: %s, %s\n", i, camEnum->getCameraId(i).c_str(), camEnum->getCameraName(i).c_str());
+        printf("%d: %s, %s\n", i, camEnum->getCameraId(i), camEnum->getCameraName(i));
     }
 	
 	int cameraId = -1;
@@ -20,11 +20,11 @@ bool configureCamera(std::shared_ptr<CameraInterface>& cam, ImageFormat *resultF
 	}
 	
 	//Obtain a camera interface using the same backend as the enumerator
-    cam = getCameraInterface(camEnum->backend);
+    cam = getCameraInterface(camEnum->getBackend());
     //Open the camera using the id from the enumerator
-    cam->open(camEnum->getCameraId(cameraId).c_str());
+    cam->open(camEnum->getCameraId(cameraId));
     //Get the list of available formats
-    std::vector<ImageFormat> listFormats = cam->getAvailableFormats();
+    std::vector<ImageFormat> listFormats = cam->getListAvailableFormat();
     for(size_t i = 0; i < listFormats.size(); i++) {
     	ImageFormat& format = listFormats[i];
         printf("%d: %dx%d (%s)\n", (int)i, format.width, format.height, toString(format.type).c_str());

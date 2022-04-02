@@ -73,8 +73,8 @@ endif()
 
 SET (LIB_INCLUDE
 			 include/libQuestMR/config.h
-			 include/libQuestMR/frame.h
-             include/libQuestMR/log.h
+			 src/frame.h
+             src/log.h
              include/libQuestMR/QuestVideoMngr.h
              include/libQuestMR/QuestCalibData.h
              include/libQuestMR/QuestFrameData.h

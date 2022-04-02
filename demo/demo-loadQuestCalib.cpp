@@ -16,19 +16,19 @@ using namespace libQuestMR;
 
 void loadQuestCalib(const char *ipAddr, const char *recordFilename)
 {
-    QuestCommunicator questCom;
-    if(!questCom.connect(ipAddr, 25671))
+    std::shared_ptr<QuestCommunicator> questCom = createQuestCommunicator();
+    if(!questCom->connect(ipAddr, 25671))
     {
         printf("can not connect to the quest\n");
         return ;
     }
 
-    QuestCommunicatorThreadData questComData(&questCom);
-    std::thread questComThread(QuestCommunicatorThreadFunc, &questComData);
+    std::shared_ptr<QuestCommunicatorThreadData> questComData = createQuestCommunicatorThreadData(questCom);
+    std::thread questComThread(QuestCommunicatorThreadFunc, questComData.get());
 
     while(true)
     {
-        std::string calibData = questComData.getCalibData();
+        std::string calibData = questComData->getCalibData().str();
         if(!calibData.empty())
         {
             FILE *file = fopen(recordFilename, "w");
@@ -43,7 +43,7 @@ void loadQuestCalib(const char *ipAddr, const char *recordFilename)
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
-    questComData.setFinishedVal(true);
+    questComData->setFinishedVal(true);
     questComThread.join();
 }
 

@@ -1,11 +1,9 @@
 #pragma once
 
-#include "config.h"
+#include <libQuestMR/config.h>
 
 #include <vector>
 #include <string>
-
-#include "config.h"
 
 namespace libQuestMR
 {

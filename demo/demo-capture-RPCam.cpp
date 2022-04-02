@@ -40,32 +40,32 @@ void captureFromQuest(const char *ipAddr)
 	
 	cv::Ptr<cv::BackgroundSubtractor> pBackSub = cv::createBackgroundSubtractorMOG2();
 	
-    QuestVideoMngr mngr;
-    QuestVideoSourceBufferedSocket videoSrc;
-    if(!videoSrc.Connect(ipAddr)) {
+    std::shared_ptr<QuestVideoMngr> mngr = createQuestVideoMngr();
+    std::shared_ptr<QuestVideoSourceBufferedSocket> videoSrc = createQuestVideoSourceBufferedSocket();
+    if(!videoSrc->Connect(ipAddr)) {
     	printf("can not connect to quest\n");
     	return;
     }
-    mngr.attachSource(&videoSrc);
+    mngr->attachSource(videoSrc);
     
     
     //Choose the conversion format and initialize the converter
     ImageFormat dstFormat(ImageType::BGR24, srcFormat.width, srcFormat.height);
     ImageFormatConverter converter(srcFormat, dstFormat);
     
-    std::shared_ptr<ImageData> imgData2 = std::make_shared<ImageData>();
+    std::shared_ptr<ImageData> imgData2 = createImageData();
     
     while(true)
     {
-        mngr.VideoTickImpl();
-        cv::Mat questImg = mngr.getMostRecentImg();
+        mngr->VideoTickImpl();
+        cv::Mat questImg = mngr->getMostRecentImg();
      
      	//Obtain the frame
         std::shared_ptr<ImageData> imgData = cam->getNewFrame(true);
         //Conver to the output format (BGR 720x480)
         converter.convertImage(imgData, imgData2);
         //Create OpenCV Mat for visualization
-        cv::Mat frame(imgData2->imageFormat.height, imgData2->imageFormat.width, CV_8UC3, imgData2->data);
+        cv::Mat frame(imgData2->getImageFormat().height, imgData2->getImageFormat().width, CV_8UC3, imgData2->getDataPtr());
         
 		if (frame.empty()) {
             printf("error : empty frame grabbed");
@@ -96,8 +96,8 @@ void captureFromQuest(const char *ipAddr)
                 break;
         }
     }
-    mngr.detachSource();
-    videoSrc.Disconnect();
+    mngr->detachSource();
+    videoSrc->Disconnect();
 }
 
 int main(int argc, char** argv) 

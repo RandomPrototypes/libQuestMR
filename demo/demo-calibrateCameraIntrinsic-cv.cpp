@@ -84,7 +84,7 @@ void captureAndCalibrateIntrinsic(int deviceID, cv::Size chessboardSize, const c
 	calibData.image_height = listImg[0].rows;
 	calibData.setCameraMatrix(K);
 	calibData.setDistCoeffs(distCoeffs);
-	std::string xmlStr = calibData.generateXMLString();
+	std::string xmlStr = calibData.generateXMLString().str();
 	FILE *file = fopen(outputFilename, "w");
 	if(file) {
 		fwrite(xmlStr.c_str(), 1, xmlStr.size(), file);

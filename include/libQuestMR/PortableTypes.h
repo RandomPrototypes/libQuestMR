@@ -1,6 +1,6 @@
 #pragma once
 
-#include "config.h"
+#include <libQuestMR/config.h>
 #include <string>
 
 /**
@@ -26,14 +26,14 @@ public:
     const char *c_str() const;
 
     size_t size() const;
+    
+    inline std::string str() const
+    {
+    	std::string result;
+		result.assign(c_str(), size());
+		return result;
+    }
 };
-
-inline std::string toString(const PortableString& str)
-{
-    std::string result;
-    result.assign(str.c_str(), str.size());
-    return result;
-}
 
 inline PortableString toPortableString(const std::string& str)
 {

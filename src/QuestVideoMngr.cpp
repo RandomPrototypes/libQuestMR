@@ -1,5 +1,5 @@
 /*
- * Based on https://github.com/facebookincubator/obs-plugins
+ * Based on GPL code from Facebook ( https://github.com/facebookincubator/obs-plugins ), modified and imported into libQuestMR
  *
  * Copyright (C) 2019-present, Facebook, Inc.
  * This program is free software; you can redistribute it and/or modify
@@ -15,8 +15,9 @@
  */
 
 #include <libQuestMR/QuestVideoMngr.h>
-#include <libQuestMR/log.h>
 #include <fcntl.h>
+#include "log.h"
+#include "frame.h"
 
 namespace libQuestMR
 {
@@ -36,8 +37,71 @@ std::string GetAvErrorString(int errNum)
 }
 #endif
 
+class QuestVideoMngrImpl : public QuestVideoMngr
+{
+public:
+    QuestVideoMngrImpl();
+    ~QuestVideoMngrImpl();
+    virtual void StartDecoder();
+    virtual void StopDecoder();
 
-QuestVideoMngr::QuestVideoMngr()
+	virtual void setRecording(const char *folder, const char *filenameWithoutExt);//set folder and filename (without extension) for recording 
+	virtual void setRecordedTimestampSource(const char *filename);//set timestamp file (for playback)
+	virtual void setVideoDecoding(bool videoDecoding);//to disable video decoding (useful if we want to record without preview)
+
+    virtual void ReceiveData();
+    virtual void VideoTickImpl(bool skipOldFrames = false);//process the received data
+    virtual void attachSource(std::shared_ptr<QuestVideoSource> videoSource);//attach the data source (socket, file,...)
+    virtual void detachSource();//detach the data source
+
+    virtual uint32_t getWidth();//get img width
+
+	virtual uint32_t getHeight();//get img height
+	
+	#ifdef LIBQUESTMR_USE_OPENCV
+    virtual cv::Mat getMostRecentImg(uint64_t *timestamp = NULL);
+	#endif
+
+private:
+#ifdef LIBQUESTMR_USE_FFMPEG
+    const AVCodec* m_codec = nullptr;
+	AVCodecContext* m_codecContext = nullptr;
+	SwsContext* m_swsContext = nullptr;
+	AVPixelFormat m_swsContext_SrcPixelFormat = AV_PIX_FMT_NONE;
+#endif
+
+    FrameCollection m_frameCollection;
+    
+    bool videoDecoding;
+
+	int m_swsContext_SrcWidth = 0;
+	int m_swsContext_SrcHeight = 0;
+	int m_swsContext_DestWidth = 0;
+	int m_swsContext_DestHeight = 0;
+
+	std::vector<std::pair<int, std::shared_ptr<Frame>>> m_cachedAudioFrames;
+	int m_audioFrameIndex = 0;
+	int m_videoFrameIndex = 0;
+
+    uint32_t m_width = OM_DEFAULT_WIDTH;
+	uint32_t m_height = OM_DEFAULT_HEIGHT;
+    uint32_t m_audioSampleRate = OM_DEFAULT_AUDIO_SAMPLERATE;
+
+#ifdef LIBQUESTMR_USE_OPENCV
+	cv::Mat mostRecentImg;
+	cv::Mat m_temp_texture;
+#endif
+    uint64_t mostRecentTimestamp;
+
+	std::shared_ptr<QuestVideoSource> videoSource = NULL;
+	FILE *recordedTimestampFile = NULL;
+};
+
+QuestVideoMngr::~QuestVideoMngr()
+{
+}
+
+QuestVideoMngrImpl::QuestVideoMngrImpl()
 {
 	videoDecoding = true;
 	#ifdef LIBQUESTMR_USE_FFMPEG
@@ -53,13 +117,16 @@ QuestVideoMngr::QuestVideoMngr()
     #endif
 }
 
+QuestVideoMngrImpl::~QuestVideoMngrImpl()
+{
+}
 
-void QuestVideoMngr::setRecording(const char *folder, const char *filenameWithoutExt)
+void QuestVideoMngrImpl::setRecording(const char *folder, const char *filenameWithoutExt)
 {
     m_frameCollection.setRecording(folder, filenameWithoutExt);
 }
 
-void QuestVideoMngr::StartDecoder()
+void QuestVideoMngrImpl::StartDecoder()
 {
 	#ifdef LIBQUESTMR_USE_FFMPEG
     if (m_codecContext != nullptr)
@@ -95,7 +162,7 @@ void QuestVideoMngr::StartDecoder()
     #endif
 }
 
-void QuestVideoMngr::StopDecoder()
+void QuestVideoMngrImpl::StopDecoder()
 {
 	#ifdef LIBQUESTMR_USE_FFMPEG
     if (m_codecContext)
@@ -117,7 +184,7 @@ void QuestVideoMngr::StopDecoder()
     }*/
 }
 
-void QuestVideoMngr::ReceiveData()
+void QuestVideoMngrImpl::ReceiveData()
 {
     if (videoSource != NULL && videoSource->isValid())
     {
@@ -160,17 +227,17 @@ void QuestVideoMngr::ReceiveData()
     }
 }
 
-void QuestVideoMngr::setRecordedTimestampSource(const char *filename)
+void QuestVideoMngrImpl::setRecordedTimestampSource(const char *filename)
 {
     recordedTimestampFile = fopen(filename, "r");
 }
 
-void QuestVideoMngr::setVideoDecoding(bool videoDecoding)
+void QuestVideoMngrImpl::setVideoDecoding(bool videoDecoding)
 {
 	this->videoDecoding = videoDecoding;
 }
 
-void QuestVideoMngr::VideoTickImpl(bool skipOldFrames)
+void QuestVideoMngrImpl::VideoTickImpl(bool skipOldFrames)
 {
     if (videoSource != NULL && videoSource->isValid())
     {
@@ -382,7 +449,26 @@ void QuestVideoMngr::VideoTickImpl(bool skipOldFrames)
     }
 }
 
-void QuestVideoMngr::attachSource(QuestVideoSource *videoSource)
+uint32_t QuestVideoMngrImpl::getWidth()//get img width
+{
+	return m_width;
+}
+
+uint32_t QuestVideoMngrImpl::getHeight()//get img height
+{
+	return m_height;
+}
+
+#ifdef LIBQUESTMR_USE_OPENCV
+cv::Mat QuestVideoMngrImpl::getMostRecentImg(uint64_t *timestamp)
+{
+	if(timestamp != NULL)
+		*timestamp = mostRecentTimestamp;
+	return mostRecentImg;
+}
+#endif
+
+void QuestVideoMngrImpl::attachSource(std::shared_ptr<QuestVideoSource> videoSource)
 {
     this->videoSource = videoSource;
     m_frameCollection.Reset();
@@ -395,7 +481,7 @@ void QuestVideoMngr::attachSource(QuestVideoSource *videoSource)
         StartDecoder();
 }
 
-void QuestVideoMngr::detachSource()
+void QuestVideoMngrImpl::detachSource()
 {
     if (videoSource == NULL || !videoSource->isValid())
     {
@@ -409,12 +495,39 @@ void QuestVideoMngr::detachSource()
 }
 
 
+QuestVideoSource::~QuestVideoSource()
+{
+}
+
+class QuestVideoSourceFileImpl : public QuestVideoSourceFile
+{
+public:
+	QuestVideoSourceFileImpl();
+	virtual ~QuestVideoSourceFileImpl();
+	virtual bool isValid();
+	virtual int recv(char *buf, size_t bufferSize);
+
+    void open(const char *filename);
+    void close();
+
+private:
+    FILE *file = NULL;
+};
+
 QuestVideoSourceFile::~QuestVideoSourceFile()
+{
+}
+
+QuestVideoSourceFileImpl::QuestVideoSourceFileImpl()
+{
+}
+
+QuestVideoSourceFileImpl::~QuestVideoSourceFileImpl()
 {
     close();
 }
 
-void QuestVideoSourceFile::open(const char *filename)
+void QuestVideoSourceFileImpl::open(const char *filename)
 {
     if (file != NULL)
     {
@@ -425,17 +538,17 @@ void QuestVideoSourceFile::open(const char *filename)
     file = fopen(filename, "rb");
 }
 
-int QuestVideoSourceFile::recv(char *buf, size_t bufferSize)
+int QuestVideoSourceFileImpl::recv(char *buf, size_t bufferSize)
 {
     return static_cast<int>(::fread(buf, 1, bufferSize, file));
 }
 
-bool QuestVideoSourceFile::isValid()
+bool QuestVideoSourceFileImpl::isValid()
 {
     return file != NULL && !feof(file);
 }
 
-void QuestVideoSourceFile::close()
+void QuestVideoSourceFileImpl::close()
 {
     if(file != NULL)
         fclose(file);
@@ -444,34 +557,84 @@ void QuestVideoSourceFile::close()
 
 
 
+class QuestVideoSourceBufferedSocketImpl : public QuestVideoSourceBufferedSocket
+{
+public:
+	QuestVideoSourceBufferedSocketImpl();
+	virtual ~QuestVideoSourceBufferedSocketImpl();
+	virtual bool isValid();
+	virtual int recv(char *buf, size_t bufferSize);
 
+    virtual bool Connect(const char *ipaddr, uint32_t port = OM_DEFAULT_PORT);
+    virtual void Disconnect();
 
-
+private:
+    std::shared_ptr<BufferedSocket> m_connectSocket;
+};
 
 QuestVideoSourceBufferedSocket::~QuestVideoSourceBufferedSocket()
+{
+}
+
+QuestVideoSourceBufferedSocketImpl::QuestVideoSourceBufferedSocketImpl()
+{
+	m_connectSocket = createBufferedSocket();
+}
+
+QuestVideoSourceBufferedSocketImpl::~QuestVideoSourceBufferedSocketImpl()
 {
     Disconnect();
 }
 
 
-bool QuestVideoSourceBufferedSocket::Connect(std::string ipaddr, uint32_t port)
+bool QuestVideoSourceBufferedSocketImpl::Connect(const char *ipaddr, uint32_t port)
 {
-    return m_connectSocket.connect(ipaddr, port);
+    return m_connectSocket->connect(ipaddr, port);
 }
 
-int QuestVideoSourceBufferedSocket::recv(char *buf, size_t bufferSize)
+int QuestVideoSourceBufferedSocketImpl::recv(char *buf, size_t bufferSize)
 {
-    return m_connectSocket.readData(buf, bufferSize);
+    return m_connectSocket->readData(buf, bufferSize);
 }
 
-bool QuestVideoSourceBufferedSocket::isValid()
+bool QuestVideoSourceBufferedSocketImpl::isValid()
 {
-    return m_connectSocket.isConnected();
+    return m_connectSocket->isConnected();
 }
 
-void QuestVideoSourceBufferedSocket::Disconnect()
+void QuestVideoSourceBufferedSocketImpl::Disconnect()
 {
-    m_connectSocket.disconnect();
+    m_connectSocket->disconnect();
+}
+
+
+
+extern "C" 
+{
+	QuestVideoSourceBufferedSocket *createQuestVideoSourceBufferedSocketRawPtr()
+	{
+		return new QuestVideoSourceBufferedSocketImpl();
+	}
+	void deleteQuestVideoSourceBufferedSocketRawPtr(QuestVideoSourceBufferedSocket *videoSource)
+	{
+		delete videoSource;
+	}
+	QuestVideoSourceFile *createQuestVideoSourceFileRawPtr()
+	{
+		return new QuestVideoSourceFileImpl();
+	}
+	void deleteQuestVideoSourceFileRawPtr(QuestVideoSourceFile *videoSource)
+	{
+		delete videoSource;
+	}
+	QuestVideoMngr *createQuestVideoMngrRawPtr()
+	{
+		return new QuestVideoMngrImpl();
+	}
+	void deleteQuestVideoMngrRawPtr(QuestVideoMngr *videoMngr)
+	{
+		delete videoMngr;
+	}
 }
 
 }

@@ -47,18 +47,18 @@ std::string mat2str(cv::Mat mat)
 
 void sample1()
 {
-    BufferedSocket questCom;
+    std::shared_ptr<BufferedSocket> questCom = createBufferedSocket();
     std::vector<char> data;
     std::vector<char> message;
-    if(questCom.connect(DEFAULT_IP_ADDRESS, 25671))
+    if(questCom->connect(DEFAULT_IP_ADDRESS, 25671))
     {
         while(true){
             char buf[255];
-            int length = questCom.readData(buf, 255);
+            int length = questCom->readData(buf, 255);
             if(length <= 0)
                 break;
             addToBuffer(data, buf, length);
-            int nextMessageStart = QuestCommunicator::findMessageStart(&data[0], data.size(), 1);
+            int nextMessageStart = libQuestMR::findMessageStart(&data[0], data.size(), 1);
             while(nextMessageStart > 0)
             {
                 extractFromStart(message, data, nextMessageStart);
@@ -66,7 +66,7 @@ void sample1()
                 for(int i = 4; i < message.size() && i < 12; i++)
                     printf("%02x ", message[i]);
                 printf(", size : %d\n", (int)message.size() - 1 - 12);
-                nextMessageStart = QuestCommunicator::findMessageStart(&data[0], data.size(), 1);
+                nextMessageStart = libQuestMR::findMessageStart(&data[0], data.size(), 1);
             }
         }
     }
@@ -74,13 +74,13 @@ void sample1()
 
 void sample2()
 {
-    QuestCommunicator questCom;
-    if(questCom.connect(DEFAULT_IP_ADDRESS, 25671))
+    std::shared_ptr<QuestCommunicator> questCom = createQuestCommunicator();
+    if(questCom->connect(DEFAULT_IP_ADDRESS, 25671))
     {
         while(true)
         {
             QuestCommunicatorMessage message;
-            if(!questCom.readMessage(&message))
+            if(!questCom->readMessage(&message))
                 break;
             printf("message type:%u size:%d\n", message.type, (int)message.data.size()-1);
             if(message.type == 33)
@@ -98,17 +98,17 @@ void sample3()
 {
     bool use_recording = false;
 
-    QuestVideoMngr mngr;
+    std::shared_ptr<QuestVideoMngr> mngr = createQuestVideoMngr();
     if(!use_recording)
     {
-        QuestVideoSourceBufferedSocket videoSrc;
-        videoSrc.Connect(DEFAULT_IP_ADDRESS);
-        mngr.attachSource(&videoSrc);
-        mngr.setRecording("output", "test");
+        std::shared_ptr<QuestVideoSourceBufferedSocket> videoSrc = createQuestVideoSourceBufferedSocket();
+        videoSrc->Connect(DEFAULT_IP_ADDRESS);
+        mngr->attachSource(videoSrc);
+        mngr->setRecording("output", "test");
         while(true)
         {
-            mngr.VideoTickImpl();
-            cv::Mat img = mngr.getMostRecentImg();
+            mngr->VideoTickImpl();
+            cv::Mat img = mngr->getMostRecentImg();
             if(!img.empty())
             {
                 cv::resize(img, img, cv::Size(img.cols/2, img.rows/2));
@@ -118,24 +118,24 @@ void sample3()
                     break;
             }
         }
-        mngr.detachSource();
-        videoSrc.Disconnect();
+        mngr->detachSource();
+        videoSrc->Disconnect();
     } else {
-        mngr.setRecording(NULL, NULL);
+        mngr->setRecording(NULL, NULL);
 
 
-        QuestVideoSourceFile videoSrc2;
-        videoSrc2.open("output/test.questMRVideo");
-        mngr.attachSource(&videoSrc2);
-        mngr.setRecordedTimestampSource("output/testTimestamp.txt");
+        std::shared_ptr<QuestVideoSourceFile> videoSrc2 = createQuestVideoSourceFile();
+        videoSrc2->open("output/test.questMRVideo");
+        mngr->attachSource(videoSrc2);
+        mngr->setRecordedTimestampSource("output/testTimestamp.txt");
         while(true)
         {
-            if(!videoSrc2.isValid())
+            if(!videoSrc2->isValid())
                 break;
             printf("VideoTickImpl\n");
-            mngr.VideoTickImpl();
+            mngr->VideoTickImpl();
             uint64_t timestamp;
-            cv::Mat img = mngr.getMostRecentImg(&timestamp);
+            cv::Mat img = mngr->getMostRecentImg(&timestamp);
             if(!img.empty())
             {
                 cv::resize(img, img, cv::Size(img.cols/2, img.rows/2));
@@ -152,7 +152,7 @@ void sample4()
 {
     QuestCalibData calibData;
     calibData.loadXMLFile("example_calib_data.xml");
-    std::cout << "result:\n" << calibData.generateXMLString();
+    std::cout << "result:\n" << calibData.generateXMLString().str();
     std::cout << "\n\nend\n";
 }
 
@@ -173,15 +173,15 @@ void sample5()
     cap.set(cv::CAP_PROP_FRAME_WIDTH,1920);
     cap.set(cv::CAP_PROP_FRAME_HEIGHT,1080);
 
-    QuestCommunicator questCom;
-    if(!questCom.connect(DEFAULT_IP_ADDRESS, 25671))
+    std::shared_ptr<QuestCommunicator> questCom = createQuestCommunicator();
+    if(!questCom->connect(DEFAULT_IP_ADDRESS, 25671))
     {
         printf("can not connect to the quest\n");
         return ;
     }
 
-    QuestCommunicatorThreadData questComData(&questCom);
-    std::thread questComThread(QuestCommunicatorThreadFunc, &questComData);
+    std::shared_ptr<QuestCommunicatorThreadData> questComData = createQuestCommunicatorThreadData(questCom);
+    std::thread questComThread(QuestCommunicatorThreadFunc, questComData.get());
 
     QuestFrameData frame;
     bool hasFrameData = false;
@@ -199,13 +199,13 @@ void sample5()
             std::cout << "ERROR! blank frame grabbed\n";
             break;
         }
-        if(questComData.hasNewFrameData())
+        if(questComData->hasNewFrameData())
         {
-            while(questComData.hasNewFrameData())
-                questComData.getFrameData(&frame);
+            while(questComData->hasNewFrameData())
+                questComData->getFrameData(&frame);
             hasFrameData = true;
         }
-        if(hasFrameData && questComData.getTriggerVal())
+        if(hasFrameData && questComData->getTriggerVal())
         {
             cv::imwrite("record/img"+std::to_string(nbRecordedFrame)+".png", img);
             fprintf(recordFile, "%d\n", nbRecordedFrame);
@@ -217,11 +217,11 @@ void sample5()
             fprintf(recordFile, "%.8lf,%.8lf,%.8lf,%.8lf\n", frame.raw_rot[0], frame.raw_rot[1], frame.raw_rot[2], frame.raw_rot[3]);
 
             nbRecordedFrame++;
-            questComData.setTriggerVal(false);
+            questComData->setTriggerVal(false);
         }
         if(calibData.empty())
         {
-            calibData = questComData.getCalibData();
+            calibData = questComData->getCalibData().str();
             if(!calibData.empty())
             {
                 FILE *file = fopen("record/calib.xml", "w");
@@ -246,7 +246,7 @@ void sample5()
             break;
     }
     fclose(recordFile);
-    questComData.setFinishedVal(true);
+    questComData->setFinishedVal(true);
     questComThread.join();
 }
 

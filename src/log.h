@@ -1,4 +1,8 @@
 /*
+
+Based on GPL code from Facebook ( https://github.com/facebookincubator/obs-plugins ), modified and imported into libQuestMR
+
+
 Copyright (C) 2019-present, Facebook, Inc.
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

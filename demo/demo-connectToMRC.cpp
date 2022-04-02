@@ -6,13 +6,13 @@ using namespace libQuestMR;
 
 void connectToMRC(const char *ipAddr)
 {
-    QuestCommunicator questCom;
-    if(questCom.connect(ipAddr, 25671))
+    std::shared_ptr<QuestCommunicator> questCom = createQuestCommunicator();
+    if(questCom->connect(ipAddr, 25671))
     {
         while(true)
         {
             QuestCommunicatorMessage message;
-            if(!questCom.readMessage(&message))
+            if(!questCom->readMessage(&message))
                 break;
             printf("message type:%u size:%d\n", message.type, (int)message.data.size()-1);
             if(message.type == 33)

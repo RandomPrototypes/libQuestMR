@@ -6,18 +6,18 @@ using namespace libQuestMR;
 
 void captureFromQuest(const char *ipAddr, const char *outputFolder, const char *name)
 {
-    QuestVideoMngr mngr;
-    QuestVideoSourceBufferedSocket videoSrc;
-    videoSrc.Connect(ipAddr);
-    mngr.attachSource(&videoSrc);
+    std::shared_ptr<QuestVideoMngr> mngr = createQuestVideoMngr();
+    std::shared_ptr<QuestVideoSourceBufferedSocket> videoSrc = createQuestVideoSourceBufferedSocket();
+    videoSrc->Connect(ipAddr);
+    mngr->attachSource(videoSrc);
     if(outputFolder != NULL) {
     	printf("recording folder : %s, name : %s\n", outputFolder, name);
-    	mngr.setRecording(outputFolder, name);
+    	mngr->setRecording(outputFolder, name);
     }
     while(true)
     {
-        mngr.VideoTickImpl();
-        cv::Mat img = mngr.getMostRecentImg();
+        mngr->VideoTickImpl();
+        cv::Mat img = mngr->getMostRecentImg();
         if(!img.empty())
         {
             cv::resize(img, img, cv::Size(img.cols/2, img.rows/2));
@@ -27,8 +27,8 @@ void captureFromQuest(const char *ipAddr, const char *outputFolder, const char *
                 break;
         }
     }
-    mngr.detachSource();
-    videoSrc.Disconnect();
+    mngr->detachSource();
+    videoSrc->Disconnect();
 }
 
 int main(int argc, char** argv) 

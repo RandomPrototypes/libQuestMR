@@ -1,6 +1,6 @@
 #pragma once
 
-#include "config.h"
+#include <libQuestMR/config.h>
 
 #ifdef LIBQUESTMR_USE_FFMPEG
 extern "C" {
@@ -11,9 +11,7 @@ extern "C" {
 }
 #endif
 
-#include "frame.h"
-
-#include "BufferedSocket.h"
+#include <BufferedSocket/BufferedSocket.h>
 
 #ifdef LIBQUESTMR_USE_OPENCV
 #include <opencv2/opencv.hpp>
@@ -33,7 +31,7 @@ LQMR_EXPORTS uint64_t getTimestampMs();
 class LQMR_EXPORTS QuestVideoSource
 {
 public:
-	virtual ~QuestVideoSource(){}
+	virtual ~QuestVideoSource();
 	virtual bool isValid() = 0;
 	virtual int recv(char *buf, size_t bufferSize) = 0;
 };
@@ -42,95 +40,72 @@ class LQMR_EXPORTS QuestVideoSourceBufferedSocket : public QuestVideoSource
 {
 public:
 	virtual ~QuestVideoSourceBufferedSocket();
-	virtual bool isValid();
-	virtual int recv(char *buf, size_t bufferSize);
+	virtual bool isValid() = 0;
+	virtual int recv(char *buf, size_t bufferSize) = 0;
 
-    bool Connect(std::string ipaddr, uint32_t port = OM_DEFAULT_PORT);
-    void Disconnect();
-
-    BufferedSocket m_connectSocket;
+    virtual bool Connect(const char *ipaddr, uint32_t port = OM_DEFAULT_PORT) = 0;
+    virtual void Disconnect() = 0;
 };
 
 class LQMR_EXPORTS QuestVideoSourceFile : public QuestVideoSource
 {
 public:
 	virtual ~QuestVideoSourceFile();
-	virtual bool isValid();
-	virtual int recv(char *buf, size_t bufferSize);
+	virtual bool isValid() = 0;
+	virtual int recv(char *buf, size_t bufferSize) = 0;
 
-    void open(const char *filename);
-    void close();
-
-    FILE *file = NULL;
+    virtual void open(const char *filename) = 0;
+    virtual void close() = 0;
 };
 
 class LQMR_EXPORTS QuestVideoMngr
 {
 public:
-#ifdef LIBQUESTMR_USE_FFMPEG
-    const AVCodec* m_codec = nullptr;
-	AVCodecContext* m_codecContext = nullptr;
-	SwsContext* m_swsContext = nullptr;
-	AVPixelFormat m_swsContext_SrcPixelFormat = AV_PIX_FMT_NONE;
-#endif
+    ~QuestVideoMngr();
+    virtual void StartDecoder() = 0;
+    virtual void StopDecoder() = 0;
 
-    FrameCollection m_frameCollection;
-    
-    bool videoDecoding;
+	virtual void setRecording(const char *folder, const char *filenameWithoutExt) = 0;//set folder and filename (without extension) for recording 
+	virtual void setRecordedTimestampSource(const char *filename) = 0;//set timestamp file (for playback)
+	virtual void setVideoDecoding(bool videoDecoding) = 0;//to disable video decoding (useful if we want to record without preview)
 
-	int m_swsContext_SrcWidth = 0;
-	int m_swsContext_SrcHeight = 0;
-	int m_swsContext_DestWidth = 0;
-	int m_swsContext_DestHeight = 0;
+    virtual void ReceiveData() = 0;
+    virtual void VideoTickImpl(bool skipOldFrames = false) = 0;//process the received data
+    virtual void attachSource(std::shared_ptr<QuestVideoSource> videoSource) = 0;//attach the data source (socket, file,...)
+    virtual void detachSource() = 0;//detach the data source
 
-	std::vector<std::pair<int, std::shared_ptr<Frame>>> m_cachedAudioFrames;
-	int m_audioFrameIndex = 0;
-	int m_videoFrameIndex = 0;
+    virtual uint32_t getWidth() = 0;//get img width
 
-    uint32_t m_width = OM_DEFAULT_WIDTH;
-	uint32_t m_height = OM_DEFAULT_HEIGHT;
-    uint32_t m_audioSampleRate = OM_DEFAULT_AUDIO_SAMPLERATE;
-
-#ifdef LIBQUESTMR_USE_OPENCV
-	cv::Mat mostRecentImg;
-	cv::Mat m_temp_texture;
-#endif
-    uint64_t mostRecentTimestamp;
-
-	QuestVideoSource *videoSource = NULL;
-	FILE *recordedTimestampFile = NULL;
-
-    QuestVideoMngr();
-    void StartDecoder();
-    void StopDecoder();
-
-	void setRecording(const char *folder, const char *filenameWithoutExt);//set folder and filename (without extension) for recording 
-	void setRecordedTimestampSource(const char *filename);//set timestamp file (for playback)
-	void setVideoDecoding(bool videoDecoding);//to disable video decoding (useful if we want to record without preview)
-
-    void ReceiveData();
-    void VideoTickImpl(bool skipOldFrames = false);//process the received data
-    void attachSource(QuestVideoSource *videoSource);//attach the data source (socket, file,...)
-    void detachSource();//detach the data source
-
-    uint32_t GetWidth()//get img width
-	{
-		return m_width;
-	}
-
-	uint32_t GetHeight()//get img height
-	{
-		return m_height;
-	}
-
-#ifdef LIBQUESTMR_USE_OPENCV
-    cv::Mat getMostRecentImg(uint64_t *timestamp = NULL)
-	{
-		if(timestamp != NULL)
-			*timestamp = mostRecentTimestamp;
-		return mostRecentImg;
-	}
-#endif
+	virtual uint32_t getHeight() = 0;//get img height
+	
+	#ifdef LIBQUESTMR_USE_OPENCV
+    virtual cv::Mat getMostRecentImg(uint64_t *timestamp = NULL) = 0;
+	#endif
 };
+
+extern "C" 
+{
+	LQMR_EXPORTS QuestVideoSourceBufferedSocket *createQuestVideoSourceBufferedSocketRawPtr();
+	LQMR_EXPORTS void deleteQuestVideoSourceBufferedSocketRawPtr(QuestVideoSourceBufferedSocket *videoSource);
+	LQMR_EXPORTS QuestVideoSourceFile *createQuestVideoSourceFileRawPtr();
+	LQMR_EXPORTS void deleteQuestVideoSourceFileRawPtr(QuestVideoSourceFile *videoSource);
+	LQMR_EXPORTS QuestVideoMngr *createQuestVideoMngrRawPtr();
+	LQMR_EXPORTS void deleteQuestVideoMngrRawPtr(QuestVideoMngr *videoMngr);
+}
+
+inline std::shared_ptr<QuestVideoSourceBufferedSocket> createQuestVideoSourceBufferedSocket()
+{
+	return std::shared_ptr<QuestVideoSourceBufferedSocket>(createQuestVideoSourceBufferedSocketRawPtr(), deleteQuestVideoSourceBufferedSocketRawPtr);
+}
+
+inline std::shared_ptr<QuestVideoSourceFile> createQuestVideoSourceFile()
+{
+	return std::shared_ptr<QuestVideoSourceFile>(createQuestVideoSourceFileRawPtr(), deleteQuestVideoSourceFileRawPtr);
+}
+
+inline std::shared_ptr<QuestVideoMngr> createQuestVideoMngr()
+{
+	return std::shared_ptr<QuestVideoMngr>(createQuestVideoMngrRawPtr(), deleteQuestVideoMngrRawPtr);
+}
 
 }

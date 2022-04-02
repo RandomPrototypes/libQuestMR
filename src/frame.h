@@ -1,4 +1,8 @@
 /*
+
+Source code from Facebook ( https://github.com/facebookincubator/obs-plugins ), modified and imported into libQuestMR
+
+
 Copyright (C) 2019-present, Facebook, Inc.
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -14,7 +18,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #pragma once
 
-#include "config.h"
+#include <libQuestMR/config.h>
 
 #include <stdint.h>
 #include <memory>
@@ -53,7 +57,7 @@ struct Frame
 
 class FrameCollectionPrivateData;
 
-class LQMR_EXPORTS FrameCollection
+class FrameCollection
 {
 public:
 	FrameCollection();
@@ -93,7 +97,10 @@ private:
 	FILE *recordingFile;
 	FILE *timestampFile;
 
-	FrameCollectionPrivateData *privateData;//store data that can not pass through the dll
+	std::chrono::time_point<std::chrono::system_clock> m_firstFrameTime;
+	std::vector<uint8_t> m_scratchPad;
+	std::list<std::shared_ptr<Frame>> m_frames;
+	std::mutex m_frameMutex;
 };
 
 }

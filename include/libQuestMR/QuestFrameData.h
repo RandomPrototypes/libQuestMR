@@ -1,9 +1,9 @@
 #pragma once
 
+#include <libQuestMR/config.h>
+#include <libQuestMR/PortableTypes.h>
 #include <vector>
 #include <string>
-
-#include "config.h"
 
 #ifdef LIBQUESTMR_USE_OPENCV
 #include <opencv2/opencv.hpp>
@@ -30,9 +30,7 @@ public:
     int rht;
     int rhv;
 
-    std::string toString(double *list, int size);
-
-    std::string toString();
+    PortableString toString();
 
     void parse(const char* str, int length);
 

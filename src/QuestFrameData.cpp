@@ -5,7 +5,7 @@
 namespace libQuestMR
 {
 
-std::string QuestFrameData::toString(double *list, int size)
+std::string toString(double *list, int size)
 {
     std::string str;
     for(size_t i = 0; i < size; i++)
@@ -17,24 +17,24 @@ std::string QuestFrameData::toString(double *list, int size)
     return str;
 }
 
-std::string QuestFrameData::toString()
+PortableString QuestFrameData::toString()
 {
     std::string str;
     str += "frame: "+std::to_string(frame)+"\n";
     str += "time: "+std::to_string(time)+"\n";
-    str += "head_pos: "+toString(head_pos, 3)+"\n";
-    str += "head_rot: "+toString(head_rot, 4)+"\n";
-    str += "left_hand_pos: "+toString(left_hand_pos, 3)+"\n";
-    str += "left_hand_rot: "+toString(left_hand_rot, 4)+"\n";
-    str += "right_hand_pos: "+toString(right_hand_pos, 3)+"\n";
-    str += "right_hand_rot: "+toString(right_hand_rot, 4)+"\n";
-    str += "raw_pos: "+toString(raw_pos, 3)+"\n";
-    str += "raw_rot: "+toString(raw_rot, 4)+"\n";
+    str += "head_pos: "+libQuestMR::toString(head_pos, 3)+"\n";
+    str += "head_rot: "+libQuestMR::toString(head_rot, 4)+"\n";
+    str += "left_hand_pos: "+libQuestMR::toString(left_hand_pos, 3)+"\n";
+    str += "left_hand_rot: "+libQuestMR::toString(left_hand_rot, 4)+"\n";
+    str += "right_hand_pos: "+libQuestMR::toString(right_hand_pos, 3)+"\n";
+    str += "right_hand_rot: "+libQuestMR::toString(right_hand_rot, 4)+"\n";
+    str += "raw_pos: "+libQuestMR::toString(raw_pos, 3)+"\n";
+    str += "raw_rot: "+libQuestMR::toString(raw_rot, 4)+"\n";
     str += "lht: "+std::to_string(lht)+"\n";
     str += "lhv: "+std::to_string(lhv)+"\n";
     str += "rht: "+std::to_string(rht)+"\n";
     str += "rhv: "+std::to_string(rhv)+"\n";
-    return str;
+    return toPortableString(str);
 }
 
 void QuestFrameData::parse(const char* str, int length)

@@ -1,4 +1,5 @@
 #include <libQuestMR/QuestCommunicator.h>
+#include <BufferedSocket/DataPacket.h>
 #include <string.h>
 #include <sstream>
 
@@ -6,25 +7,77 @@
 namespace libQuestMR
 {
 
-const char QuestCommunicator::messageStartID[4] = {(char)0x6b, (char)0xa7, (char)0x83, (char)0x52};
+class QuestCommunicatorImpl : public QuestCommunicator
+{
+public:
+    QuestCommunicatorImpl();
+    virtual ~QuestCommunicatorImpl();
 
-QuestCommunicator::QuestCommunicator()
+    virtual void onError(const char *errorMsg);
+
+    //connect to the quest calibration app, port should be 25671
+    virtual bool connect(const char *address, int port = QUEST_CALIB_DEFAULT_PORT);
+
+    virtual bool readHeader(char *header, bool loopUntilFound = true);
+
+    virtual void createHeader(char *buffer, unsigned int type, unsigned int length);
+
+    //apparently, the data is not sent in network byte order but in the opposite
+    //so, to stay platform independent, I first reverse the order (to get it in network byte order)
+    //and then convert it to UInt32 using ntohl to stay valid for any platform
+    virtual uint32_t toUInt32(char *data);
+
+    virtual void fromUInt32(char *data, uint32_t val);
+
+    //Read the socket until one full message is obtained (blocking call).
+    //Return false in case of communication error
+    virtual bool readMessage(QuestCommunicatorMessage *output);
+
+    //Send the message to the socket
+    //Return false in case of communication error
+    virtual bool sendMessage(const QuestCommunicatorMessage& msg);
+
+    //Send data to the socket
+    //Will close the socket if the number of bytes sent is incorrect
+    //Returns the number of bytes sent
+    virtual int sendRawData(const char *data, int length);
+
+    //Disconnect the socket
+    virtual void disconnect();
+    
+    static const char messageStartID[4];
+private:
+	std::shared_ptr<BufferedSocket> sock;
+};
+
+const char QuestCommunicatorImpl::messageStartID[4] = {(char)0x6b, (char)0xa7, (char)0x83, (char)0x52};
+
+QuestCommunicator::~QuestCommunicator()
 {
 }
 
-void QuestCommunicator::onError(std::string errorMsg)
+QuestCommunicatorImpl::QuestCommunicatorImpl()
 {
-    printf("%s\n", errorMsg.c_str());
+	sock = createBufferedSocket();
 }
 
-bool QuestCommunicator::connect(std::string address, int port)
+QuestCommunicatorImpl::~QuestCommunicatorImpl()
 {
-    return sock.connect(address, port);
 }
 
-bool QuestCommunicator::readHeader(char *header, bool loopUntilFound)
+void QuestCommunicatorImpl::onError(const char *errorMsg)
 {
-    if(sock.readNBytes(header, 12) != 12)
+    printf("%s\n", errorMsg);
+}
+
+bool QuestCommunicatorImpl::connect(const char *address, int port)
+{
+    return sock->connect(address, port);
+}
+
+bool QuestCommunicatorImpl::readHeader(char *header, bool loopUntilFound)
+{
+    if(sock->readNBytes(header, 12) != 12)
         return false;
     if(!loopUntilFound)
         return findMessageStart(header, 12) == 0;
@@ -33,7 +86,7 @@ bool QuestCommunicator::readHeader(char *header, bool loopUntilFound)
     {
         for(int i = 0; i < 4; i++)
             header[i] = header[i+8];
-        if(sock.readNBytes(header+4, 8) != 8)
+        if(sock->readNBytes(header+4, 8) != 8)
             return false;
     }
     int offset = findMessageStart(header, 12);
@@ -41,10 +94,10 @@ bool QuestCommunicator::readHeader(char *header, bool loopUntilFound)
         return true;
     for(int i = 0; i < 12-offset; i++)
         header[i] = header[i+offset];
-    return (sock.readNBytes(header+offset, 12-offset) == 12-offset);
+    return (sock->readNBytes(header+offset, 12-offset) == 12-offset);
 }
 
-void QuestCommunicator::createHeader(char *buffer, unsigned int type, unsigned int length)
+void QuestCommunicatorImpl::createHeader(char *buffer, unsigned int type, unsigned int length)
 {
     for(int i = 0; i < 4; i++)
         buffer[i] = messageStartID[i];
@@ -55,18 +108,17 @@ void QuestCommunicator::createHeader(char *buffer, unsigned int type, unsigned i
 //apparently, the data is not sent in network byte order but in the opposite
 //so, to stay platform independent, I first reverse the order (to get it in network byte order)
 //and then convert it to UInt32 using ntohl to stay valid for any platform
-uint32_t QuestCommunicator::toUInt32(char *data)
+uint32_t QuestCommunicatorImpl::toUInt32(char *data)
 {
-    DataPacket dataPkt;
     char tmp[4] = {data[3], data[2], data[1], data[0]};
-    return DataPacket::convertToUInt32((unsigned char*)tmp);
+    return convertBytesToUInt32((unsigned char*)tmp);
     //return ntohl(*(uint32_t*)tmp);
 }
 
-void QuestCommunicator::fromUInt32(char *data, uint32_t val)
+void QuestCommunicatorImpl::fromUInt32(char *data, uint32_t val)
 {
     char tmp[4];
-    DataPacket::convertUInt32ToBytes(val, (unsigned char*)tmp);
+    convertUInt32ToBytes(val, (unsigned char*)tmp);
     //uint32_t val_n = htonl(val);
     //char *tmp = (char*)&val_n;
     data[0] = tmp[3];
@@ -75,13 +127,13 @@ void QuestCommunicator::fromUInt32(char *data, uint32_t val)
     data[3] = tmp[0];
 }
 
-bool QuestCommunicator::readMessage(QuestCommunicatorMessage *output)
+bool QuestCommunicatorImpl::readMessage(QuestCommunicatorMessage *output)
 {
     char header[12];
     if(!readHeader(header, false))
     {
         onError("Can not read header");
-        sock.disconnect();
+        sock->disconnect();
         return false;
     }
     output->type = toUInt32(header+4);
@@ -90,7 +142,7 @@ bool QuestCommunicator::readMessage(QuestCommunicatorMessage *output)
     std::vector<char> data;
     data.resize(length+1);
     data[length] = 0;
-    if(sock.readNBytes(&data[0], length) != length)
+    if(sock->readNBytes(&data[0], length) != length)
     {
         onError("Can not read message content");
         return false;
@@ -99,7 +151,7 @@ bool QuestCommunicator::readMessage(QuestCommunicatorMessage *output)
     return true;
 }
 
-bool QuestCommunicator::sendMessage(const QuestCommunicatorMessage& msg)
+bool QuestCommunicatorImpl::sendMessage(const QuestCommunicatorMessage& msg)
 {
     int totalSize = 12+(int)msg.data.size();
     char *data = new char[totalSize];
@@ -112,33 +164,20 @@ bool QuestCommunicator::sendMessage(const QuestCommunicatorMessage& msg)
     return ret == totalSize;
 }
 
-int QuestCommunicator::sendRawData(char *data, int length) 
+int QuestCommunicatorImpl::sendRawData(const char *data, int length) 
 {
-    int sizeSent = sock.sendData(data, length);
+    int sizeSent = sock->sendData(data, length);
     if(sizeSent != length)
     {
         onError("send() sent a different number of bytes than expected");
-        sock.disconnect();
+        sock->disconnect();
     }
     return sizeSent;
 }
 
-void QuestCommunicator::disconnect()
+void QuestCommunicatorImpl::disconnect()
 {
-    sock.disconnect();
-}
-
-int QuestCommunicator::findMessageStart(char *buffer, int length, int start)
-{
-    for(int i = start; i+4 < length; i++)
-    {
-        if(buffer[i] == messageStartID[0] && buffer[i+1] == messageStartID[1]
-            && buffer[i+2] == messageStartID[2] && buffer[i+3] == messageStartID[3])
-        {
-            return i;
-        }
-    }
-    return -1;
+    sock->disconnect();
 }
 
 
@@ -146,7 +185,66 @@ int QuestCommunicator::findMessageStart(char *buffer, int length, int start)
 
 
 
-QuestCommunicatorThreadData::QuestCommunicatorThreadData(QuestCommunicator *questCom)
+
+
+
+class QuestCommunicatorThreadDataImpl : public QuestCommunicatorThreadData
+{
+public:
+    QuestCommunicatorThreadDataImpl(std::shared_ptr<QuestCommunicator> questCom);
+    ~QuestCommunicatorThreadDataImpl();
+
+    //Thread-safe function to set if the communication is finished
+    virtual void setFinishedVal(bool val);
+
+    //Thread-safe function to know if the communication is finished
+    virtual bool isFinished();
+
+    //Thread-safe function to set the calibration data
+    virtual void setCalibData(const PortableString& data);
+
+	//request upload calib data to the quest.
+	//Non-blocking, you should wait until isCalibDataUploaded() is true for the upload to be done.
+    virtual void sendCalibDataToQuest(const PortableString& data);
+    
+    //true when the calib data has been uploaded to the quest
+    virtual bool isCalibDataUploaded();
+
+    //Thread-safe function to get the latest calibration data
+    virtual PortableString getCalibData();
+
+    //Thread-safe function to check if there is a frame data available on the queue
+    virtual bool hasNewFrameData();
+
+    //Thread-safe function to push a FrameData to the queue
+    virtual void pushFrameData(const QuestFrameData& data);
+
+    //Thread-safe function to get a FrameData from the queue, returns false if empty
+    virtual bool getFrameData(QuestFrameData *data);
+
+    //Thread-safe function to set the value of the trigger
+    virtual void setTriggerVal(bool val);
+
+    //Thread-safe function to get the value of the trigger
+    virtual bool getTriggerVal();
+
+    virtual void threadFunc();
+private:
+    std::mutex mutex;
+    std::shared_ptr<QuestCommunicator> questCom;
+    std::queue<QuestFrameData> listFrameData;
+    PortableString calibData;
+    bool needUploadCalibData;
+    bool finished;
+    bool triggerVal;
+    int maxQueueSize;
+};
+
+QuestCommunicatorThreadData::~QuestCommunicatorThreadData()
+{
+}
+
+QuestCommunicatorThreadDataImpl::QuestCommunicatorThreadDataImpl(std::shared_ptr<QuestCommunicator> questCom)
     :questCom(questCom)
 {
     finished = false;
@@ -155,22 +253,26 @@ QuestCommunicatorThreadData::QuestCommunicatorThreadData(QuestCommunicator *ques
     maxQueueSize = 10;
 }
 
-void QuestCommunicatorThreadData::setCalibData(const std::string& data)
+QuestCommunicatorThreadDataImpl::~QuestCommunicatorThreadDataImpl()
+{
+}
+
+void QuestCommunicatorThreadDataImpl::setCalibData(const PortableString& data)
 {
     mutex.lock();
     this->calibData = data;
     mutex.unlock();
 }
 
-std::string QuestCommunicatorThreadData::getCalibData()
+PortableString QuestCommunicatorThreadDataImpl::getCalibData()
 {
     mutex.lock();
-    std::string data = calibData;
+    PortableString data = calibData;
     mutex.unlock();
     return data;
 }
 
-void QuestCommunicatorThreadData::sendCalibDataToQuest(const std::string& data)
+void QuestCommunicatorThreadDataImpl::sendCalibDataToQuest(const PortableString& data)
 {
     mutex.lock();
     calibData = data;
@@ -178,12 +280,12 @@ void QuestCommunicatorThreadData::sendCalibDataToQuest(const std::string& data)
     mutex.unlock();
 }
 
-bool QuestCommunicatorThreadData::isCalibDataUploaded()
+bool QuestCommunicatorThreadDataImpl::isCalibDataUploaded()
 {
 	return !needUploadCalibData;
 }
 
-bool QuestCommunicatorThreadData::hasNewFrameData()
+bool QuestCommunicatorThreadDataImpl::hasNewFrameData()
 {
     mutex.lock();
     bool val = !listFrameData.empty();
@@ -191,7 +293,7 @@ bool QuestCommunicatorThreadData::hasNewFrameData()
     return val;
 }
 
-void QuestCommunicatorThreadData::pushFrameData(const QuestFrameData& data)
+void QuestCommunicatorThreadDataImpl::pushFrameData(const QuestFrameData& data)
 {
     mutex.lock();
     listFrameData.push(data);
@@ -200,7 +302,7 @@ void QuestCommunicatorThreadData::pushFrameData(const QuestFrameData& data)
     mutex.unlock();
 }
 
-bool QuestCommunicatorThreadData::getFrameData(QuestFrameData *data)
+bool QuestCommunicatorThreadDataImpl::getFrameData(QuestFrameData *data)
 {
     bool val = true;
     mutex.lock();
@@ -214,14 +316,14 @@ bool QuestCommunicatorThreadData::getFrameData(QuestFrameData *data)
     return val;
 }
 
-void QuestCommunicatorThreadData::setTriggerVal(bool val)
+void QuestCommunicatorThreadDataImpl::setTriggerVal(bool val)
 {
     mutex.lock();
     triggerVal = val;
     mutex.unlock();
 }
 
-bool QuestCommunicatorThreadData::getTriggerVal()
+bool QuestCommunicatorThreadDataImpl::getTriggerVal()
 {
     mutex.lock();
     bool val = triggerVal;
@@ -229,14 +331,14 @@ bool QuestCommunicatorThreadData::getTriggerVal()
     return val;
 }
 
-void QuestCommunicatorThreadData::setFinishedVal(bool val)
+void QuestCommunicatorThreadDataImpl::setFinishedVal(bool val)
 {
     mutex.lock();
     finished = val;
     mutex.unlock();
 }
 
-bool QuestCommunicatorThreadData::isFinished()
+bool QuestCommunicatorThreadDataImpl::isFinished()
 {
     mutex.lock();
     bool val = finished;
@@ -256,7 +358,7 @@ std::string toString(const std::vector<char>& listChars)
 }
 
 
-void QuestCommunicatorThreadData::threadFunc()
+void QuestCommunicatorThreadDataImpl::threadFunc()
 {
     while(!isFinished())
     {
@@ -264,7 +366,7 @@ void QuestCommunicatorThreadData::threadFunc()
         if(needUploadCalibData)
         {
             mutex.lock();
-            message.data = PortableString(&calibData[0], calibData.size());
+            message.data = calibData;
             message.type = 36;
             bool ret = questCom->sendMessage(message);
             needUploadCalibData = false;
@@ -286,7 +388,7 @@ void QuestCommunicatorThreadData::threadFunc()
             //printf("trigger pressed\n");
             setTriggerVal(true);
         } else if(message.type == 36) {
-            setCalibData(toString(message.data));
+            setCalibData(message.data.c_str());
         } else {
             /*printf("message type:%u size:%u\n", message.type, message.data.size()-1);
             for(size_t i = 0; i < message.data.size(); i++)
@@ -300,6 +402,46 @@ void QuestCommunicatorThreadData::threadFunc()
 void QuestCommunicatorThreadFunc(QuestCommunicatorThreadData *data)
 {
     data->threadFunc();
+}
+
+
+
+
+extern "C" 
+{
+	int findMessageStart(const char *buffer, int length, int start)
+	{
+		for(int i = start; i+4 < length; i++)
+		{
+		    if(buffer[i] == QuestCommunicatorImpl::messageStartID[0] && buffer[i+1] == QuestCommunicatorImpl::messageStartID[1]
+		        && buffer[i+2] == QuestCommunicatorImpl::messageStartID[2] && buffer[i+3] == QuestCommunicatorImpl::messageStartID[3])
+		    {
+		        return i;
+		    }
+		}
+		return -1;
+	}
+
+	QuestCommunicator *createQuestCommunicatorRawPtr()
+	{
+		return new QuestCommunicatorImpl();
+	}
+	
+	void deleteQuestCommunicatorRawPtr(QuestCommunicator *com)
+	{
+		delete com;
+	}
+	
+	QuestCommunicatorThreadData *createQuestCommunicatorThreadDataRawPtr(std::shared_ptr<QuestCommunicator> com)
+	{
+		return new QuestCommunicatorThreadDataImpl(com);
+	}
+	
+	void deleteQuestCommunicatorThreadDataRawPtr(QuestCommunicatorThreadData *comThreadData)
+	{
+		delete comThreadData;
+	}
+
 }
 
 

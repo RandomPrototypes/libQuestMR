@@ -352,7 +352,7 @@ void QuestCalibData::loadXML(tinyxml2::XMLDocument& doc)
     getMatrix(rootElem, "raw_rotation", raw_rotation, 4);
 }
 
-std::string QuestCalibData::generateXMLString() const
+PortableString QuestCalibData::generateXMLString() const
 {
     std::stringstream ss;
     ss << "<?xml version=\"1.0\"?><opencv_storage>";
@@ -375,7 +375,7 @@ std::string QuestCalibData::generateXMLString() const
     ss << makeXmlStringFromMatrix("raw_translation", raw_translation, -1, 1);
     ss << makeXmlStringFromMatrix("raw_rotation", raw_rotation, -1, 1);
     ss << "</opencv_storage>";
-    return ss.str();
+    return toPortableString(ss.str());
 }
 
 void QuestCalibData::loadXMLFile(const char *filename)

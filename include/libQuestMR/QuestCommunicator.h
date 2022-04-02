@@ -1,13 +1,13 @@
 #pragma once
 
+#include <libQuestMR/config.h>
+#include <libQuestMR/QuestFrameData.h>
+#include <libQuestMR/PortableTypes.h>
+#include <BufferedSocket/BufferedSocket.h>
 #include <vector>
 #include <string>
 #include <queue>
 #include <mutex>
-#include "config.h"
-#include "QuestFrameData.h"
-#include "BufferedSocket.h"
-#include "PortableTypes.h"
 
 namespace libQuestMR
 {
@@ -22,101 +22,105 @@ public:
 class LQMR_EXPORTS QuestCommunicator
 {
 public:
-    BufferedSocket sock;
-    static const char messageStartID[4];
+    virtual ~QuestCommunicator();
 
-
-    QuestCommunicator();
-
-    void onError(std::string errorMsg);
+    virtual void onError(const char *errorMsg) = 0;
 
     //connect to the quest calibration app, port should be 25671
-    bool connect(std::string address, int port = QUEST_CALIB_DEFAULT_PORT);
+    virtual bool connect(const char *address, int port = QUEST_CALIB_DEFAULT_PORT) = 0;
 
-    bool readHeader(char *header, bool loopUntilFound = true);
+    virtual bool readHeader(char *header, bool loopUntilFound = true) = 0;
 
-    void createHeader(char *buffer, unsigned int type, unsigned int length);
+    virtual void createHeader(char *buffer, unsigned int type, unsigned int length) = 0;
 
     //apparently, the data is not sent in network byte order but in the opposite
     //so, to stay platform independent, I first reverse the order (to get it in network byte order)
     //and then convert it to UInt32 using ntohl to stay valid for any platform
-    uint32_t toUInt32(char *data);
+    virtual uint32_t toUInt32(char *data) = 0;
 
-    void fromUInt32(char *data, uint32_t val);
+    virtual void fromUInt32(char *data, uint32_t val) = 0;
 
     //Read the socket until one full message is obtained (blocking call).
     //Return false in case of communication error
-    bool readMessage(QuestCommunicatorMessage *output);
+    virtual bool readMessage(QuestCommunicatorMessage *output) = 0;
 
     //Send the message to the socket
     //Return false in case of communication error
-    bool sendMessage(const QuestCommunicatorMessage& msg);
+    virtual bool sendMessage(const QuestCommunicatorMessage& msg) = 0;
 
     //Send data to the socket
     //Will close the socket if the number of bytes sent is incorrect
     //Returns the number of bytes sent
-    int sendRawData(char *data, int length);
+    virtual int sendRawData(const char *data, int length) = 0;
 
     //Disconnect the socket
-    void disconnect();
-
-    //search for the message start "magic value": 0x6ba78352
-    //mainly for debug purpose, you do not need it if the protocol is implemented correctly
-    static int findMessageStart(char *buffer, int length, int start = 0);
+    virtual void disconnect() = 0;
 };
 
 class LQMR_EXPORTS QuestCommunicatorThreadData
 {
 public:
-    QuestCommunicatorThreadData(QuestCommunicator *questCom);
+    virtual ~QuestCommunicatorThreadData();
 
     //Thread-safe function to set if the communication is finished
-    void setFinishedVal(bool val);
+    virtual void setFinishedVal(bool val) = 0;
 
     //Thread-safe function to know if the communication is finished
-    bool isFinished();
+    virtual bool isFinished() = 0;
 
     //Thread-safe function to set the calibration data
-    void setCalibData(const std::string& data);
+    virtual void setCalibData(const PortableString& data) = 0;
 
 	//request upload calib data to the quest.
 	//Non-blocking, you should wait until isCalibDataUploaded() is true for the upload to be done.
-    void sendCalibDataToQuest(const std::string& data);
+    virtual void sendCalibDataToQuest(const PortableString& data) = 0;
     
     //true when the calib data has been uploaded to the quest
-    bool isCalibDataUploaded();
+    virtual bool isCalibDataUploaded() = 0;
 
     //Thread-safe function to get the latest calibration data
-    std::string getCalibData();
+    virtual PortableString getCalibData() = 0;
 
     //Thread-safe function to check if there is a frame data available on the queue
-    bool hasNewFrameData();
+    virtual bool hasNewFrameData() = 0;
 
     //Thread-safe function to push a FrameData to the queue
-    void pushFrameData(const QuestFrameData& data);
+    virtual void pushFrameData(const QuestFrameData& data) = 0;
 
     //Thread-safe function to get a FrameData from the queue, returns false if empty
-    bool getFrameData(QuestFrameData *data);
+    virtual bool getFrameData(QuestFrameData *data) = 0;
 
     //Thread-safe function to set the value of the trigger
-    void setTriggerVal(bool val);
+    virtual void setTriggerVal(bool val) = 0;
 
     //Thread-safe function to get the value of the trigger
-    bool getTriggerVal();
+    virtual bool getTriggerVal() = 0;
 
-    void threadFunc();
-private:
-    std::mutex mutex;
-    QuestCommunicator *questCom;
-    std::queue<QuestFrameData> listFrameData;
-    std::string calibData;
-    bool needUploadCalibData;
-    bool finished;
-    bool triggerVal;
-    int maxQueueSize;
+    virtual void threadFunc() = 0;
 };
 
 LQMR_EXPORTS void QuestCommunicatorThreadFunc(QuestCommunicatorThreadData *data);
 
+extern "C"
+{
+	//search for the message start "magic value": 0x6ba78352
+	//mainly for debug purpose, you do not need it if the protocol is implemented correctly
+	LQMR_EXPORTS int findMessageStart(const char *buffer, int length, int start = 0);
+	
+	LQMR_EXPORTS QuestCommunicator *createQuestCommunicatorRawPtr();
+	LQMR_EXPORTS void deleteQuestCommunicatorRawPtr(QuestCommunicator *com);
+	LQMR_EXPORTS QuestCommunicatorThreadData *createQuestCommunicatorThreadDataRawPtr(std::shared_ptr<QuestCommunicator> com);
+	LQMR_EXPORTS void deleteQuestCommunicatorThreadDataRawPtr(QuestCommunicatorThreadData *comThreadData);
+}
+
+inline std::shared_ptr<QuestCommunicator> createQuestCommunicator()
+{
+	return std::shared_ptr<QuestCommunicator>(createQuestCommunicatorRawPtr(), deleteQuestCommunicatorRawPtr);
+}
+
+inline std::shared_ptr<QuestCommunicatorThreadData> createQuestCommunicatorThreadData(std::shared_ptr<QuestCommunicator> com)
+{
+	return std::shared_ptr<QuestCommunicatorThreadData>(createQuestCommunicatorThreadDataRawPtr(com), deleteQuestCommunicatorThreadDataRawPtr);
+}
 
 }

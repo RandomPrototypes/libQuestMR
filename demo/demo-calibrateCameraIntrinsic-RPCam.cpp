@@ -15,7 +15,7 @@ void captureAndCalibrateIntrinsic(cv::Size chessboardSize, const char *outputFil
     camEnum->detectCameras();
     printf("%d cameras detected\n", camEnum->count());
     for(int i = 0; i < camEnum->count(); i++) {
-        printf("%d: %s, %s\n", i, camEnum->getCameraId(i).c_str(), camEnum->getCameraName(i).c_str());
+        printf("%d: %s, %s\n", i, camEnum->getCameraId(i), camEnum->getCameraName(i));
     }
 	
 	int cameraId = -1;
@@ -26,11 +26,11 @@ void captureAndCalibrateIntrinsic(cv::Size chessboardSize, const char *outputFil
 	}
 	
 	//Obtain a camera interface using the same backend as the enumerator
-    std::shared_ptr<CameraInterface> cam = getCameraInterface(camEnum->backend);
+    std::shared_ptr<CameraInterface> cam = getCameraInterface(camEnum->getBackend());
     //Open the camera using the id from the enumerator
-    cam->open(camEnum->getCameraId(cameraId).c_str());
+    cam->open(camEnum->getCameraId(cameraId));
     //Get the list of available formats
-    std::vector<ImageFormat> listFormats = cam->getAvailableFormats();
+    std::vector<ImageFormat> listFormats = cam->getListAvailableFormat();
     for(size_t i = 0; i < listFormats.size(); i++) {
     	ImageFormat& format = listFormats[i];
         printf("%d: %dx%d (%s)\n", (int)i, format.width, format.height, toString(format.type).c_str());
@@ -55,7 +55,7 @@ void captureAndCalibrateIntrinsic(cv::Size chessboardSize, const char *outputFil
     ImageFormat dstFormat(ImageType::BGR24, listFormats[formatId].width, listFormats[formatId].height);
     ImageFormatConverter converter(listFormats[formatId], dstFormat);
     
-    std::shared_ptr<ImageData> imgData2 = std::make_shared<ImageData>();
+    std::shared_ptr<ImageData> imgData2 = createImageData();
 	
 	std::vector<std::vector<cv::Point2f> > listImgCorners;
 	std::vector<cv::Mat> listImg;
@@ -70,7 +70,7 @@ void captureAndCalibrateIntrinsic(cv::Size chessboardSize, const char *outputFil
         //Conver to the output format (BGR 720x480)
         converter.convertImage(imgData, imgData2);
         //Create OpenCV Mat for visualization
-        cv::Mat frame(imgData2->imageFormat.height, imgData2->imageFormat.width, CV_8UC3, imgData2->data);
+        cv::Mat frame(imgData2->getImageFormat().height, imgData2->getImageFormat().width, CV_8UC3, imgData2->getDataPtr());
 		if (frame.empty()) {
             printf("error : empty frame grabbed");
             break;
@@ -127,7 +127,7 @@ void captureAndCalibrateIntrinsic(cv::Size chessboardSize, const char *outputFil
 	calibData.image_height = listImg[0].rows;
 	calibData.setCameraMatrix(K);
 	calibData.setDistCoeffs(distCoeffs);
-	std::string xmlStr = calibData.generateXMLString();
+	std::string xmlStr = calibData.generateXMLString().str();
 	FILE *file = fopen(outputFilename, "w");
 	if(file) {
 		fwrite(xmlStr.c_str(), 1, xmlStr.size(), file);

@@ -16,25 +16,25 @@ void uploadQuestCalib(const char *ipAddr, const char *calibFilename)
 	QuestCalibData calibData;
     calibData.loadXMLFile(calibFilename);
     
-    QuestCommunicator questCom;
-    if(!questCom.connect(ipAddr, 25671))
+    std::shared_ptr<QuestCommunicator> questCom = createQuestCommunicator();
+    if(!questCom->connect(ipAddr, 25671))
     {
         printf("can not connect to the quest\n");
         return ;
     }
 
-    QuestCommunicatorThreadData questComData(&questCom);
-    std::thread questComThread(QuestCommunicatorThreadFunc, &questComData);
+    std::shared_ptr<QuestCommunicatorThreadData> questComData = createQuestCommunicatorThreadData(questCom);
+    std::thread questComThread(QuestCommunicatorThreadFunc, questComData.get());
     
     //request upload of the calibration data
-    questComData.sendCalibDataToQuest(calibData.generateXMLString());
+    questComData->sendCalibDataToQuest(calibData.generateXMLString());
 
 	//wait until the calibration data is uploaded
-    while(!questComData.isCalibDataUploaded())
+    while(!questComData->isCalibDataUploaded())
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     
     printf("calibration data uploaded\n");
-    questComData.setFinishedVal(true);
+    questComData->setFinishedVal(true);
     questComThread.join();
 }
 

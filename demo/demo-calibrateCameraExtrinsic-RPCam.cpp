@@ -46,13 +46,13 @@ void captureAndCalibrateExtrinsic(const char *ipAddr, const char *calibFilename,
 		return ;
 	}
     
-    QuestCommunicator questCom;
-    if(!questCom.connect(ipAddr, 25671)) {
+    std::shared_ptr<QuestCommunicator> questCom = createQuestCommunicator();
+    if(!questCom->connect(ipAddr, 25671)) {
     	printf("can not connect to Quest\n");
     	return ;
     }
-    QuestCommunicatorThreadData questComData(&questCom);
-    std::thread questComThread(QuestCommunicatorThreadFunc, &questComData);
+    std::shared_ptr<QuestCommunicatorThreadData> questComData = createQuestCommunicatorThreadData(questCom);
+    std::thread questComThread(QuestCommunicatorThreadFunc, questComData.get());
     
 	
 	int maxImgSize = 1280;
@@ -61,7 +61,7 @@ void captureAndCalibrateExtrinsic(const char *ipAddr, const char *calibFilename,
     ImageFormat dstFormat(ImageType::BGR24, srcFormat.width, srcFormat.height);
     ImageFormatConverter converter(srcFormat, dstFormat);
     
-    std::shared_ptr<ImageData> imgData2 = std::make_shared<ImageData>();
+    std::shared_ptr<ImageData> imgData2 = createImageData();
 	
 	std::vector<cv::Mat> listImg;
 	std::vector<cv::Point3d> listRightHandPos;
@@ -77,24 +77,24 @@ void captureAndCalibrateExtrinsic(const char *ipAddr, const char *calibFilename,
         //Conver to the output format (BGR 720x480)
         converter.convertImage(imgData, imgData2);
         //Create OpenCV Mat for visualization
-        cv::Mat frame(imgData2->imageFormat.height, imgData2->imageFormat.width, CV_8UC3, imgData2->data);
+        cv::Mat frame(imgData2->getImageFormat().height, imgData2->getImageFormat().width, CV_8UC3, imgData2->getDataPtr());
 		if (frame.empty()) {
             printf("error : empty frame grabbed");
             break;
         }
         
-        if(questComData.hasNewFrameData())
+        if(questComData->hasNewFrameData())
         {
-            while(questComData.hasNewFrameData())
-                questComData.getFrameData(&frameData);
+            while(questComData->hasNewFrameData())
+                questComData->getFrameData(&frameData);
             hasFrameData = true;
         }
         
-        if(hasFrameData && questComData.getTriggerVal() && frameData.isRightHandValid())
+        if(hasFrameData && questComData->getTriggerVal() && frameData.isRightHandValid())
         {
         	listImg.push_back(frame.clone());
         	listRightHandPos.push_back(cv::Point3d(frameData.right_hand_pos[0], frameData.right_hand_pos[1], frameData.right_hand_pos[2]));
-            questComData.setTriggerVal(false);	
+            questComData->setTriggerVal(false);	
         }
         
         cv::Mat img = frame.clone();
@@ -110,7 +110,7 @@ void captureAndCalibrateExtrinsic(const char *ipAddr, const char *calibFilename,
         	break;
 	}
 	
-	questComData.setFinishedVal(true);
+	questComData->setFinishedVal(true);
 	
 	MouseData mouseData;
     cv::setMouseCallback("img", MouseCallBackFunc, &mouseData);
@@ -137,7 +137,7 @@ void captureAndCalibrateExtrinsic(const char *ipAddr, const char *calibFilename,
 	
 	calibData.calibrateCamPose(listRightHandPos, listPoints2D);
 
-	std::string xmlStr = calibData.generateXMLString();
+	std::string xmlStr = calibData.generateXMLString().str();
 	FILE *file = fopen(outputFilename, "w");
 	if(file) {
 		fwrite(xmlStr.c_str(), 1, xmlStr.size(), file);

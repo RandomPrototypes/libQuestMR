@@ -1,17 +1,15 @@
 #pragma once
 
+#include <libQuestMR/config.h>
+#include <libQuestMR/PortableTypes.h>
 #include <string>
 #include <vector>
 
 #include "tinyxml2.h"
 
-#include "config.h"
-
 #ifdef LIBQUESTMR_USE_OPENCV
 #include <opencv2/opencv.hpp>
 #endif
-
-#include "PortableTypes.h"
 
 namespace libQuestMR
 {
@@ -49,9 +47,7 @@ public:
     const char *getCameraName() const;
     void setCameraName(const char *name);
 
-    void loadXML(tinyxml2::XMLDocument& doc);
-
-    std::string generateXMLString() const;
+    PortableString generateXMLString() const;
 
     void loadXMLFile(const char *filename);
 
@@ -75,6 +71,9 @@ public:
 
     bool calibrateCamPose(const std::vector<cv::Point3d>& listPoint3d, const std::vector<cv::Point2d>& listPoint2d);
 #endif
+
+private:
+	void loadXML(tinyxml2::XMLDocument& doc);
 };
 
 #ifdef LIBQUESTMR_USE_OPENCV
@@ -84,5 +83,4 @@ LQMR_EXPORTS cv::Mat quaternion2rotationMat(const cv::Mat& quaternion);
 //TODO : not tested, need to verify if this works properly
 LQMR_EXPORTS cv::Mat quaternion2rvec(const cv::Mat& quaternion);
 #endif
-
 }

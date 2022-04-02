@@ -8,18 +8,18 @@ using namespace libQuestMR;
 
 void connectToMRC_raw(const char *ipAddr)
 {
-    BufferedSocket questCom;
+    std::shared_ptr<BufferedSocket> questCom = createBufferedSocket();
     std::vector<char> data;
     std::vector<char> message;
-    if(questCom.connect(ipAddr, 25671))
+    if(questCom->connect(ipAddr, 25671))
     {
         while(true){
             char buf[255];
-            int length = questCom.readData(buf, 255);
+            int length = questCom->readData(buf, 255);
             if(length <= 0)
                 break;
             addToBuffer(data, buf, length);
-            int nextMessageStart = QuestCommunicator::findMessageStart(&data[0], data.size(), 1);
+            int nextMessageStart = libQuestMR::findMessageStart(&data[0], data.size(), 1);
             while(nextMessageStart > 0)
             {
                 extractFromStart(message, data, nextMessageStart);
@@ -27,7 +27,7 @@ void connectToMRC_raw(const char *ipAddr)
                 for(int i = 4; i < message.size() && i < 12; i++)
                     printf("%02x ", message[i]);
                 printf(", size : %d\n", (int)message.size() - 1 - 12);
-                nextMessageStart = QuestCommunicator::findMessageStart(&data[0], data.size(), 1);
+                nextMessageStart = libQuestMR::findMessageStart(&data[0], data.size(), 1);
             }
         }
     } else {

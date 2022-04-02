@@ -1,4 +1,5 @@
 #include <libQuestMR/PortableTypes.h>
+#include <cstring>
 
 namespace libQuestMR
 {
