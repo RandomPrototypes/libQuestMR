@@ -6,7 +6,7 @@ double calibrateIntrisic(const std::vector<std::vector<cv::Point2f> >& listImgCo
 	for(int i = 0; i < chessboardSize.height; i++)
 	{
 		for(int j = 0; j < chessboardSize.width; j++)
-			corners3D.push_back(cv::Point3f(j,i,0));
+			corners3D.push_back(cv::Point3f((float)j,(float)i,0.0f));
 	}
 	
 	std::vector<std::vector<cv::Point3f> > listPoints3D;

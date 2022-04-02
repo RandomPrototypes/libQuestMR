@@ -58,15 +58,15 @@ void sample1()
             if(length <= 0)
                 break;
             addToBuffer(data, buf, length);
-            int nextMessageStart = libQuestMR::findMessageStart(&data[0], data.size(), 1);
+            int nextMessageStart = libQuestMR::findMessageStart(&data[0], (int)data.size(), 1);
             while(nextMessageStart > 0)
             {
                 extractFromStart(message, data, nextMessageStart);
                 message.push_back('\0');
-                for(int i = 4; i < message.size() && i < 12; i++)
+                for(size_t i = 4; i < message.size() && i < 12; i++)
                     printf("%02x ", message[i]);
                 printf(", size : %d\n", (int)message.size() - 1 - 12);
-                nextMessageStart = libQuestMR::findMessageStart(&data[0], data.size(), 1);
+                nextMessageStart = libQuestMR::findMessageStart(&data[0], (int)data.size(), 1);
             }
         }
     }
@@ -82,14 +82,15 @@ void sample2()
             QuestCommunicatorMessage message;
             if(!questCom->readMessage(&message))
                 break;
-            printf("message type:%u size:%d\n", message.type, (int)message.data.size()-1);
+            int size = static_cast<int>(message.data.size()) - 1;
+            printf("message type:%u size:%d\n", message.type, size);
             if(message.type == 33)
             {
                 QuestFrameData frame;
-                frame.parse(message.data.c_str(), message.data.size()-1);
+                frame.parse(message.data.c_str(), size);
                 printf("frame data:\n%s\n", frame.toString().c_str());
             }
-            else printf("raw data:\n%.*s\n\n", (int)message.data.size()-1,message.data.c_str());
+            else printf("raw data:\n%.*s\n\n", size, message.data.c_str());
         }
     }
 }
