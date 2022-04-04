@@ -33,12 +33,10 @@ public:
 
     virtual void createHeader(char *buffer, unsigned int type, unsigned int length) = 0;
 
-    //apparently, the data is not sent in network byte order but in the opposite
-    //so, to stay platform independent, I first reverse the order (to get it in network byte order)
-    //and then convert it to UInt32 using ntohl to stay valid for any platform
-    virtual uint32_t toUInt32(char *data) = 0;
+    //apparently, the data is sent in little-endian instead of big-endian (network byte order)
+    virtual uint32_t toUInt32(const char *data) const = 0;
 
-    virtual void fromUInt32(char *data, uint32_t val) = 0;
+    virtual void fromUInt32(char *data, uint32_t val) const = 0;
 
     //Read the socket until one full message is obtained (blocking call).
     //Return false in case of communication error
@@ -91,10 +89,10 @@ public:
     virtual bool getFrameData(QuestFrameData *data) = 0;
 
     //Thread-safe function to set the value of the trigger
-    virtual void setTriggerVal(bool val) = 0;
+    virtual void setTriggerCount(uint32_t count) = 0;
 
     //Thread-safe function to get the value of the trigger
-    virtual bool getTriggerVal() = 0;
+    virtual uint32_t getTriggerCount() = 0;
 
     virtual void threadFunc() = 0;
 };

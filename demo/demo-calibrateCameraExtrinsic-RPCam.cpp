@@ -70,6 +70,7 @@ void captureAndCalibrateExtrinsic(const char *ipAddr, const char *calibFilename,
 	cv::Mat K, distCoeffs;
 	QuestFrameData frameData;
     bool hasFrameData = false;
+	uint32_t currentTriggerCount = 0;
 	while(true) 
 	{
 		//Obtain the frame
@@ -90,11 +91,11 @@ void captureAndCalibrateExtrinsic(const char *ipAddr, const char *calibFilename,
             hasFrameData = true;
         }
         
-        if(hasFrameData && questComData->getTriggerVal() && frameData.isRightHandValid())
+        if(hasFrameData && questComData->getTriggerCount() > currentTriggerCount && frameData.isRightHandValid())
         {
         	listImg.push_back(frame.clone());
         	listRightHandPos.push_back(cv::Point3d(frameData.right_hand_pos[0], frameData.right_hand_pos[1], frameData.right_hand_pos[2]));
-            questComData->setTriggerVal(false);	
+            currentTriggerCount = questComData->getTriggerCount();	
         }
         
         cv::Mat img = frame.clone();

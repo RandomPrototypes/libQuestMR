@@ -193,6 +193,7 @@ void sample5()
 
     std::string calibData;
 
+    uint32_t currentTriggerCount = 0;
     while(true)
     {
         cap.read(img);
@@ -206,7 +207,7 @@ void sample5()
                 questComData->getFrameData(&frame);
             hasFrameData = true;
         }
-        if(hasFrameData && questComData->getTriggerVal())
+        if(hasFrameData && currentTriggerCount < questComData->getTriggerCount())
         {
             cv::imwrite("record/img"+std::to_string(nbRecordedFrame)+".png", img);
             fprintf(recordFile, "%d\n", nbRecordedFrame);
@@ -218,7 +219,7 @@ void sample5()
             fprintf(recordFile, "%.8lf,%.8lf,%.8lf,%.8lf\n", frame.raw_rot[0], frame.raw_rot[1], frame.raw_rot[2], frame.raw_rot[3]);
 
             nbRecordedFrame++;
-            questComData->setTriggerVal(false);
+            currentTriggerCount = questComData->getTriggerCount();
         }
         if(calibData.empty())
         {

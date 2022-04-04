@@ -25,9 +25,9 @@ public:
     //apparently, the data is not sent in network byte order but in the opposite
     //so, to stay platform independent, I first reverse the order (to get it in network byte order)
     //and then convert it to UInt32 using ntohl to stay valid for any platform
-    virtual uint32_t toUInt32(char *data);
+    virtual uint32_t toUInt32(const char *data) const;
 
-    virtual void fromUInt32(char *data, uint32_t val);
+    virtual void fromUInt32(char *data, uint32_t val) const;
 
     //Read the socket until one full message is obtained (blocking call).
     //Return false in case of communication error
@@ -105,26 +105,16 @@ void QuestCommunicatorImpl::createHeader(char *buffer, unsigned int type, unsign
     fromUInt32(buffer+8, (uint32_t)length);
 }
 
-//apparently, the data is not sent in network byte order but in the opposite
-//so, to stay platform independent, I first reverse the order (to get it in network byte order)
-//and then convert it to UInt32 using ntohl to stay valid for any platform
-uint32_t QuestCommunicatorImpl::toUInt32(char *data)
+uint32_t QuestCommunicatorImpl::toUInt32(const char *data) const
 {
-    char tmp[4] = {data[3], data[2], data[1], data[0]};
-    return convertBytesToUInt32((unsigned char*)tmp);
-    //return ntohl(*(uint32_t*)tmp);
+    //little endian uchar* to uint32 conversion
+    return convertBytesToUInt32((unsigned char*)data, false);
 }
 
-void QuestCommunicatorImpl::fromUInt32(char *data, uint32_t val)
+void QuestCommunicatorImpl::fromUInt32(char *data, uint32_t val) const
 {
-    char tmp[4];
-    convertUInt32ToBytes(val, (unsigned char*)tmp);
-    //uint32_t val_n = htonl(val);
-    //char *tmp = (char*)&val_n;
-    data[0] = tmp[3];
-    data[1] = tmp[2];
-    data[2] = tmp[1];
-    data[3] = tmp[0];
+    //little endian uint32 to uchar* conversion
+    convertUInt32ToBytes(val, (unsigned char*)data, false);
 }
 
 bool QuestCommunicatorImpl::readMessage(QuestCommunicatorMessage *output)
@@ -138,7 +128,6 @@ bool QuestCommunicatorImpl::readMessage(QuestCommunicatorMessage *output)
     }
     output->type = toUInt32(header+4);
     uint32_t length = toUInt32(header+8);
-    printf("%u bytes to read\n", length);
     std::vector<char> data;
     data.resize(length+1);
     data[length] = 0;
@@ -223,10 +212,10 @@ public:
     virtual bool getFrameData(QuestFrameData *data);
 
     //Thread-safe function to set the value of the trigger
-    virtual void setTriggerVal(bool val);
+    virtual void setTriggerCount(uint32_t val);
 
     //Thread-safe function to get the value of the trigger
-    virtual bool getTriggerVal();
+    virtual uint32_t getTriggerCount();
 
     virtual void threadFunc();
 private:
@@ -236,7 +225,7 @@ private:
     PortableString calibData;
     bool needUploadCalibData;
     bool finished;
-    bool triggerVal;
+    uint32_t triggerCount;
     int maxQueueSize;
 };
 
@@ -248,7 +237,7 @@ QuestCommunicatorThreadDataImpl::QuestCommunicatorThreadDataImpl(std::shared_ptr
     :questCom(questCom)
 {
     finished = false;
-    triggerVal = false;
+    triggerCount = 0;
     needUploadCalibData = false;
     maxQueueSize = 10;
 }
@@ -316,17 +305,17 @@ bool QuestCommunicatorThreadDataImpl::getFrameData(QuestFrameData *data)
     return val;
 }
 
-void QuestCommunicatorThreadDataImpl::setTriggerVal(bool val)
+void QuestCommunicatorThreadDataImpl::setTriggerCount(uint32_t val)
 {
     mutex.lock();
-    triggerVal = val;
+    triggerCount = val;
     mutex.unlock();
 }
 
-bool QuestCommunicatorThreadDataImpl::getTriggerVal()
+uint32_t QuestCommunicatorThreadDataImpl::getTriggerCount()
 {
     mutex.lock();
-    bool val = triggerVal;
+    uint32_t val = triggerCount;
     mutex.unlock();
     return val;
 }
@@ -384,9 +373,9 @@ void QuestCommunicatorThreadDataImpl::threadFunc()
             //printf("frame data:\n%s\n", frame.toString().c_str());
 
             pushFrameData(frame);
-        } else if(message.type == 34) {
+        } else if(message.type == 34 && message.data.size() >= 4) {
             //printf("trigger pressed\n");
-            setTriggerVal(true);
+            setTriggerCount(questCom->toUInt32(message.data.c_str()));
         } else if(message.type == 36) {
             setCalibData(message.data.c_str());
         } else {
