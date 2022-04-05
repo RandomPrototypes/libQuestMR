@@ -72,25 +72,25 @@ if(USE_FFMPEG)
 endif()
 
 SET (LIB_INCLUDE
-			 include/libQuestMR/config.h
-			 src/frame.h
+             include/libQuestMR/config.h
+             src/frame.h
              src/log.h
              include/libQuestMR/QuestVideoMngr.h
              include/libQuestMR/QuestCalibData.h
              include/libQuestMR/QuestFrameData.h
              include/libQuestMR/QuestCommunicator.h
              include/libQuestMR/QuestStringUtil.h
-			 include/libQuestMR/PortableTypes.h
+             include/libQuestMR/PortableTypes.h
              ${tinyxml2}/tinyxml2.h)
 
 SET (LIB_SRC
-		    src/frame.cpp
+            src/frame.cpp
             src/QuestVideoMngr.cpp
             src/QuestCalibData.cpp
             src/QuestFrameData.cpp
             src/QuestCommunicator.cpp
             src/QuestStringUtil.cpp
-			src/PortableTypes.cpp
+            src/PortableTypes.cpp
             ${tinyxml2}/tinyxml2.cpp)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include ${BufferedSocket} ${tinyxml2})
@@ -120,6 +120,7 @@ if(BUILD_DEMO)
 	if(USE_RPCameraInterface)
 		add_executable(demo-calibrateCameraIntrinsic-RPCam ${LIB_INCLUDE} demo/demo-calibrateCameraIntrinsic-RPCam.cpp demo/calibration_helper.h demo/calibration_helper.cpp)
 		add_executable(demo-calibrateCameraExtrinsic-RPCam ${LIB_INCLUDE} demo/demo-calibrateCameraExtrinsic-RPCam.cpp demo/RPCam_helper.h demo/RPCam_helper.cpp)
+		add_executable(demo-calibrateCameraFull-RPCam ${LIB_INCLUDE} demo/demo-calibrateCameraFull-RPCam.cpp demo/RPCam_helper.h demo/RPCam_helper.cpp)
 		add_executable(demo-testCalib-RPCam ${LIB_INCLUDE} demo/demo-testCalib-RPCam.cpp demo/RPCam_helper.h demo/RPCam_helper.cpp)
 		add_executable(demo-capture-RPCam ${LIB_INCLUDE} demo/demo-capture-RPCam.cpp demo/RPCam_helper.h demo/RPCam_helper.cpp)
 		if(USE_ONNX_RUNTIME)
@@ -170,6 +171,8 @@ if(BUILD_DEMO)
 		target_link_libraries(demo-calibrateCameraIntrinsic-RPCam LINK_PUBLIC libQuestMR BufferedSocket RPCameraInterface)
 		target_link_libraries(demo-calibrateCameraExtrinsic-RPCam PRIVATE ${OpenCV_LIBS})
 		target_link_libraries(demo-calibrateCameraExtrinsic-RPCam LINK_PUBLIC libQuestMR BufferedSocket RPCameraInterface)
+		target_link_libraries(demo-calibrateCameraFull-RPCam PRIVATE ${OpenCV_LIBS})
+		target_link_libraries(demo-calibrateCameraFull-RPCam LINK_PUBLIC libQuestMR BufferedSocket RPCameraInterface)
 		target_link_libraries(demo-testCalib-RPCam PRIVATE ${OpenCV_LIBS})
 		target_link_libraries(demo-testCalib-RPCam LINK_PUBLIC libQuestMR BufferedSocket RPCameraInterface)
 		target_link_libraries(demo-capture-RPCam PRIVATE ${OpenCV_LIBS})

@@ -47,6 +47,8 @@ public:
     const char *getCameraName() const;
     void setCameraName(const char *name);
 
+    void setCameraFromSizeAndFOV(double fov_x, int width, int height);
+
     PortableString generateXMLString() const;
 
     void loadXMLFile(const char *filename);

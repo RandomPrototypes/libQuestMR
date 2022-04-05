@@ -265,6 +265,20 @@ QuestCalibData::QuestCalibData()
     chromaKeySimilarity = 0;
     chromaKeySmoothRange = 0;
     chromaKeySpillRange = 0;
+    for(int i = 0; i < 9; i++)
+        camera_matrix[i] = 0;
+    for(int i = 0; i < 8; i++)
+        distortion_coefficients[i] = 0;
+    for(int i = 0; i < 3; i++) {
+        translation[i] = 0;
+        raw_translation[i] = 0;
+    }
+    for(int i = 0; i < 4; i++) {
+        rotation[i] = 0;
+        raw_rotation[i] = 0;
+    }
+    rotation[0] = 1;
+    raw_rotation[0] = 1;
 }
 
 QuestCalibData::QuestCalibData(const QuestCalibData& other)
@@ -392,6 +406,18 @@ void QuestCalibData::loadXMLString(const char *str)
     loadXML(doc);
 }
 
+void QuestCalibData::setCameraFromSizeAndFOV(double fov_x, int width, int height)
+{
+    double f = static_cast<double>(width) / (2*tan(fov_x / 2));
+    camera_matrix[0] = f;   camera_matrix[1] = 0.0; camera_matrix[2] = width / 2.0;
+    camera_matrix[3] = 0.0; camera_matrix[4] = f;   camera_matrix[5] = height / 2.0;
+    camera_matrix[6] = 0.0; camera_matrix[7] = 0.0; camera_matrix[8] = 1.0;
+    for(int i = 0; i < 8; i++)
+        distortion_coefficients[i] = 0;
+    image_width = width;
+    image_height = height;
+}
+
 #ifdef LIBQUESTMR_USE_OPENCV
 cv::Mat QuestCalibData::getCameraMatrix() const { return vec2mat(camera_matrix, 3, 3); }
 void    QuestCalibData::setCameraMatrix(const cv::Mat& K) { mat2vec<double>(K, camera_matrix, 9); }
@@ -401,6 +427,7 @@ cv::Mat QuestCalibData::getTranslation() const { return vec2mat(translation, 3, 
 cv::Mat QuestCalibData::getRotation() const { return vec2mat(rotation, 4, 1); }
 cv::Mat QuestCalibData::getRawTranslation() const { return vec2mat(raw_translation, 3, 1); }
 cv::Mat QuestCalibData::getRawRotation() const { return vec2mat(raw_rotation, 4, 1); }
+
 cv::Mat QuestCalibData::getExtrinsicMat() const
 {
     cv::Mat Rt = cv::Mat::eye(4,4,CV_64F);
