@@ -375,9 +375,9 @@ PortableString QuestCalibData::generateXMLString() const
     ss << makeXmlString("image_width", image_width);
     ss << makeXmlString("image_height", image_height);
     ss << makeXmlStringFromMatrix("camera_matrix", camera_matrix, 3, 3);
-    ss << makeXmlStringFromMatrix("distortion_coefficients", distortion_coefficients, -1, 1);
-    ss << makeXmlStringFromMatrix("translation", translation, -1, 1);
-    ss << makeXmlStringFromMatrix("rotation", rotation, -1, 1);
+    ss << makeXmlStringFromMatrix("distortion_coefficients", distortion_coefficients, 8, 1);
+    ss << makeXmlStringFromMatrix("translation", translation, 3, 1);
+    ss << makeXmlStringFromMatrix("rotation", rotation, 4, 1);
     ss << makeXmlString("attachedDevice", attachedDevice);
     ss << makeXmlString("camDelayMs", camDelayMs);
     ss << makeXmlString("chromaKeyColorRed", chromaKeyColorRed);
@@ -386,8 +386,8 @@ PortableString QuestCalibData::generateXMLString() const
     ss << makeXmlString("chromaKeySimilarity", chromaKeySimilarity);
     ss << makeXmlString("chromaKeySmoothRange", chromaKeySmoothRange);
     ss << makeXmlString("chromaKeySpillRange", chromaKeySpillRange);
-    ss << makeXmlStringFromMatrix("raw_translation", raw_translation, -1, 1);
-    ss << makeXmlStringFromMatrix("raw_rotation", raw_rotation, -1, 1);
+    ss << makeXmlStringFromMatrix("raw_translation", raw_translation, 3, 1);
+    ss << makeXmlStringFromMatrix("raw_rotation", raw_rotation, 4, 1);
     ss << "</opencv_storage>";
     return toPortableString(ss.str());
 }

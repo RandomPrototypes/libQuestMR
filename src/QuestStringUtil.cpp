@@ -92,11 +92,18 @@ int parseInt(const char *str, int length, int *currentPos)
 std::string parseDoubleString(const char *str, int length, int *currentPos)
 {
     std::string result = parseIntString(str, length, currentPos, true);
-    if(*currentPos >= length || str[*currentPos] != '.')
+    if(*currentPos >= length || (str[*currentPos] != '.' && str[*currentPos] != 'E' && str[*currentPos] != 'e'))
         return result;
-    result += '.';
+    if(str[*currentPos] == '.') {
+        result += '.';
+        (*currentPos)++;
+        result += parseIntString(str, length, currentPos, false);
+        if(*currentPos >= length || (str[*currentPos] != 'E' && str[*currentPos] != 'e'))
+            return result;
+    }
+    result += 'E';
     (*currentPos)++;
-    result += parseIntString(str, length, currentPos, false);
+    result += parseIntString(str, length, currentPos, true);
     return result;
 }
 
