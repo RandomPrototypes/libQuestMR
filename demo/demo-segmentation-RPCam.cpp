@@ -66,7 +66,7 @@ void testSegmentation()
 	io_binding.BindOutput("r3o", memoryInfoCuda);
 	io_binding.BindOutput("r4o", memoryInfoCuda);
     
-    std::shared_ptr<ImageData> imgData2 = std::make_shared<ImageData>();
+    std::shared_ptr<ImageData> imgData2 = createImageData();
     
 	io_binding.BindInput("r1i", r1i);
     io_binding.BindInput("r2i", r1i);
@@ -83,7 +83,7 @@ void testSegmentation()
         //Conver to the output format (BGR 720x480)
         converter.convertImage(imgData, imgData2);
         //Create OpenCV Mat for visualization
-        cv::Mat frame(imgData2->imageFormat.height, imgData2->imageFormat.width, CV_8UC3, imgData2->data);
+        cv::Mat frame(imgData2->getImageFormat().height, imgData2->getImageFormat().width, CV_8UC3, imgData2->getDataPtr());
 		if (frame.empty()) {
             printf("error : empty frame grabbed");
             break;
