@@ -1,13 +1,31 @@
 # libQuestMR
 
 Unofficial library that handles the communication with the Quest 2 for mixed reality and provides an easy bridge to OpenCV.  
-Still a work in progress. Already usable but the interface may change a lot in future versions.  
+Nearly ready for a first release. Already usable but the interface may change a little bit in future versions.  
 A mixed reality capture software is on development [here](https://github.com/RandomPrototypes/RPMixedRealityCapture).
 
 The master branch is hosted at https://github.com/RandomPrototypes/libQuestMR
 
+### Features
+
+Already implemented :  
+* Communication with Oculus Mixed Reality Capture App (Headset and controller poses, trigger button, calibration load and upload)
+* Calibration between external camera and headset
+* Extraction and decoding of the frames from the headset
+* Recording and playback of the frames from the headset
+* Windows, Linux, Macos support
+
+Still testing :
+* Video matting without greenscreen
+
+Future plan :
+* Audio recording
+* Moving camera
+* Body tracking
+* Android, iphone, maybe raspberry pi support (the code is portable but the makefiles probably need to be modified)
+
 ### Dependencies
-Networking is managed by [BufferedSocket](https://github.com/RandomPrototypes/BufferedSocket), a lighweight portable library I made. It's automatically downloaded by cmake.  
+Networking is managed by [BufferedSocket](https://github.com/RandomPrototypes/BufferedSocket), a lighweight portable library I made. 
 
 XML loading/writing is managed by [tinyxml2](https://github.com/leethomason/tinyxml2). It's automatically downloaded by cmake.  
 
