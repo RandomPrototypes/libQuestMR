@@ -2,34 +2,14 @@
 
 #include <libQuestMR/QuestVideoMngr.h>
 #include <RPCameraInterface/ImageFormatConverter.h>
+#include <RPCameraInterface/OpenCVConverter.h>
+#include <RPCameraInterface/VideoEncoder.h>
 #include "RPCam_helper.h"
 
 using namespace libQuestMR;
 using namespace RPCameraInterface;
 
-cv::Mat mergeImg(cv::Mat fgImg, cv::Mat bgImg, cv::Mat fgMask)
-{
-	cv::Mat result = fgImg.clone();
-	for(int i = 0; i < fgImg.rows && i < bgImg.rows; i++)
-	{
-		unsigned char *resultPtr = result.ptr<unsigned char>(i);
-		unsigned char *bgPtr = bgImg.ptr<unsigned char>(i);
-		unsigned char *fgPtr = fgImg.ptr<unsigned char>(i);
-		unsigned char *fgMaskPtr = fgMask.ptr<unsigned char>(i);
-		for(int j = 0; j < fgImg.cols && j < bgImg.cols; j++)
-		{
-			if(fgMaskPtr[j] == 0)
-			{
-				resultPtr[j*3] = bgPtr[j*3];
-				resultPtr[j*3+1] = bgPtr[j*3+1];
-				resultPtr[j*3+2] = bgPtr[j*3+2];
-			}
-		}
-	}
-	return result;
-}
-
-void captureFromQuest(const char *ipAddr)
+void captureFromQuest(const char *ipAddr, const char *outputFile)
 {
 	std::shared_ptr<CameraInterface> cam;
 	ImageFormat srcFormat;
@@ -54,7 +34,11 @@ void captureFromQuest(const char *ipAddr)
     ImageFormatConverter converter(srcFormat, dstFormat);
     
     std::shared_ptr<ImageData> imgData2 = createImageData();
-    
+
+	std::shared_ptr<H264Encoder> videoEncoder = createH264Encoder();
+	videoEncoder->setUseFrameTimestamp(true);
+	if(outputFile != NULL)
+		videoEncoder->open(outputFile, srcFormat.height, srcFormat.width);
     while(true)
     {
         mngr->VideoTickImpl();
@@ -83,19 +67,19 @@ void captureFromQuest(const char *ipAddr)
         	cv::imshow("cam", frame2);
         }
         
-		cv::Mat img = mergeImg(frame, questImg, fgMask);
-        if(!img.empty())
-        {
-            //cv::resize(img, img, cv::Size(img.cols/2, img.rows/2));
-            cv::imshow("img", img);
-            //cv::imshow("questFG", questImg(cv::Rect(0,0,questImg.cols/2,questImg.rows)));
-            //cv::imshow("questBG", questImg(cv::Rect(questImg.cols/2,0,questImg.cols/2,questImg.rows)));
-            cv::imshow("img", img);
-            int key = cv::waitKey(10);
-            if(key > 0)
-                break;
-        }
+		if(!questImg.empty()) {
+			cv::Mat composedImg = composeMixedRealityImg(questImg, frame, fgMask);
+			cv::imshow("composedImg", composedImg);
+			if(outputFile != NULL)
+				videoEncoder->write(createImageDataFromMat(composedImg, imgData2->getTimestamp(), false));
+		}
+        
+		int key = cv::waitKey(10);
+		if(key > 0)
+			break;
     }
+	if(outputFile != NULL)
+		videoEncoder->release();
     mngr->detachSource();
     videoSrc->Disconnect();
 }
@@ -103,9 +87,9 @@ void captureFromQuest(const char *ipAddr)
 int main(int argc, char** argv) 
 {
 	if(argc < 2) {
-		printf("usage: demo-capture-RPCam ipAddr\n");
+		printf("usage: demo-capture-RPCam ipAddr file\n");
 	} else {
-		captureFromQuest(argv[1]);
+		captureFromQuest(argv[1], argc >= 2 ? argv[2] : NULL);
     }
     return 0;
 }

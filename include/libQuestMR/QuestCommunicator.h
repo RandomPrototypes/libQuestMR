@@ -12,11 +12,31 @@
 namespace libQuestMR
 {
 
+//list of ids taken from fabio914's RealityMixer
+namespace QuestMessageTypeId
+{
+	enum QuestMessageTypeIdEnum : unsigned int
+	{
+		userId = 31,
+		dataVersion = 32,
+		poseUpdate = 33,
+		primaryButtonPressed = 34,
+		secondaryButtonPressed = 35,
+		calibrationData = 36, // both ways
+		clearCalibration = 37, // from the app to the Quest
+		operationComplete = 38,
+		stateChangePause = 39,
+		adjustKey = 40
+	};
+}
+
 class LQMR_EXPORTS QuestCommunicatorMessage
 {
 public:
     unsigned int type;
     PortableString data;
+    
+    const char *getTypeStr() const;
 };
 
 class LQMR_EXPORTS QuestCommunicator
@@ -104,6 +124,8 @@ extern "C"
 	//search for the message start "magic value": 0x6ba78352
 	//mainly for debug purpose, you do not need it if the protocol is implemented correctly
 	LQMR_EXPORTS int findMessageStart(const char *buffer, int length, int start = 0);
+	
+	LQMR_EXPORTS const char *questMessageTypeId2Str(unsigned int type);
 	
 	LQMR_EXPORTS QuestCommunicator *createQuestCommunicatorRawPtr();
 	LQMR_EXPORTS void deleteQuestCommunicatorRawPtr(QuestCommunicator *com);

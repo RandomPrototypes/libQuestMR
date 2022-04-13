@@ -82,7 +82,7 @@ void sample2()
             QuestCommunicatorMessage message;
             if(!questCom->readMessage(&message))
                 break;
-            int size = static_cast<int>(message.data.size()) - 1;
+            int size = static_cast<int>(message.data.size());
             printf("message type:%u size:%d\n", message.type, size);
             if(message.type == 33)
             {

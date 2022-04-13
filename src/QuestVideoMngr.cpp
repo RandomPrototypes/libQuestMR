@@ -635,6 +635,48 @@ extern "C"
 	{
 		delete videoMngr;
 	}
+
+#ifdef LIBQUESTMR_USE_OPENCV
+    cv::Mat composeMixedRealityImg(const cv::Mat& questImg, const cv::Mat& camImg, const cv::Mat& camAlpha)
+    {
+        cv::Mat result = questImg(cv::Rect(0,0,questImg.cols/2,questImg.rows)).clone();
+        cv::Mat fgImg, fgAlpha;
+        cv::resize(questImg(cv::Rect(questImg.cols/2,0,questImg.cols/4,questImg.rows)), fgImg, result.size());
+        cv::resize(questImg(cv::Rect(questImg.cols*3/4,0,questImg.cols/4,questImg.rows)), fgAlpha, result.size());
+        int camAlphaChannelCount = camAlpha.channels();
+        for(int i = 0; i < result.rows; i++)
+        {
+            unsigned char *resultPtr = result.ptr<unsigned char>(i);
+            const unsigned char *fgPtr = fgImg.ptr<unsigned char>(i);
+            const unsigned char *fgAlphaPtr = fgAlpha.ptr<unsigned char>(i);
+            const unsigned char *camImgPtr = camImg.ptr<unsigned char>(i);
+            const unsigned char *camAlphaPtr = camAlpha.ptr<unsigned char>(i);
+
+            int width = std::min(result.cols, camImg.cols);
+            if(i >= camImg.rows)
+                width = 0;
+            for(int j = width; j > 0; j--) {
+                int alpha = *camAlphaPtr;
+                for(int k = 3; k > 0; k--) {
+                    *resultPtr = ((255-alpha) * (*resultPtr) + alpha * (*camImgPtr))/255;
+                    *resultPtr = ((255-(*fgAlphaPtr)) * (*resultPtr) + (*fgAlphaPtr) * (*fgPtr))/255;
+                    resultPtr++;
+                    fgPtr++;
+                    fgAlphaPtr++;
+                    camImgPtr++;
+                }
+                camAlphaPtr += camAlphaChannelCount;
+            }
+            for(int j = 3*(result.cols - width); j > 0; j--) {
+                *resultPtr = ((255-(*fgAlphaPtr)) * (*resultPtr) + (*fgAlphaPtr) * (*fgPtr))/255;
+                resultPtr++;
+                fgPtr++;
+                fgAlphaPtr++;
+            }
+        }
+        return result;
+    }
+#endif
 }
 
 }

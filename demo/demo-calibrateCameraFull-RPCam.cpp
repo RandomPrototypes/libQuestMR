@@ -18,6 +18,10 @@ public:
     int x,y;
     bool leftDown;
 
+	MouseData()
+		:leftDown(false), x(0), y(0)
+	{
+	}
 };
 
 
@@ -45,7 +49,7 @@ void captureAndCalibrateFull(const char *ipAddr, const char *outputFilename)
 	}
     
     std::shared_ptr<QuestCommunicator> questCom = createQuestCommunicator();
-    if(!questCom->connect(ipAddr, 25671)) {
+    if(!questCom->connect(ipAddr)) {
     	printf("can not connect to Quest\n");
     	return ;
     }

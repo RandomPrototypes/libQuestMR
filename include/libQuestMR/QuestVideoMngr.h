@@ -91,6 +91,10 @@ extern "C"
 	LQMR_EXPORTS void deleteQuestVideoSourceFileRawPtr(QuestVideoSourceFile *videoSource);
 	LQMR_EXPORTS QuestVideoMngr *createQuestVideoMngrRawPtr();
 	LQMR_EXPORTS void deleteQuestVideoMngrRawPtr(QuestVideoMngr *videoMngr);
+
+#ifdef LIBQUESTMR_USE_OPENCV
+	LQMR_EXPORTS cv::Mat composeMixedRealityImg(const cv::Mat& questImg, const cv::Mat& camImg, const cv::Mat& camAlpha);
+#endif
 }
 
 inline std::shared_ptr<QuestVideoSourceBufferedSocket> createQuestVideoSourceBufferedSocket()

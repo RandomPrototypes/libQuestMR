@@ -7,6 +7,11 @@
 namespace libQuestMR
 {
 
+const char *QuestCommunicatorMessage::getTypeStr() const
+{
+    return questMessageTypeId2Str(type);
+}
+
 class QuestCommunicatorImpl : public QuestCommunicator
 {
 public:
@@ -129,8 +134,7 @@ bool QuestCommunicatorImpl::readMessage(QuestCommunicatorMessage *output)
     output->type = toUInt32(header+4);
     uint32_t length = toUInt32(header+8);
     std::vector<char> data;
-    data.resize(length+1);
-    data[length] = 0;
+    data.resize(length);
     if(sock->readNBytes(&data[0], length) != length)
     {
         onError("Can not read message content");
@@ -356,7 +360,7 @@ void QuestCommunicatorThreadDataImpl::threadFunc()
         {
             mutex.lock();
             message.data = calibData;
-            message.type = 36;
+            message.type = QuestMessageTypeId::calibrationData;
             bool ret = questCom->sendMessage(message);
             needUploadCalibData = false;
             mutex.unlock();
@@ -366,17 +370,16 @@ void QuestCommunicatorThreadDataImpl::threadFunc()
         }
         if(!questCom->readMessage(&message))
             break;
-        if(message.type == 33)
+        if(message.type == QuestMessageTypeId::poseUpdate)
         {
             QuestFrameData frame;
-            frame.parse(message.data.c_str(), (int)message.data.size()-1);
+            frame.parse(message.data.c_str(), message.data.size());
             //printf("frame data:\n%s\n", frame.toString().c_str());
-
             pushFrameData(frame);
-        } else if(message.type == 34 && message.data.size() >= 4) {
-            //printf("trigger pressed\n");
+        } else if(message.type == QuestMessageTypeId::primaryButtonPressed && message.data.size() >= 4) {
             setTriggerCount(questCom->toUInt32(message.data.c_str()));
-        } else if(message.type == 36) {
+            //printf("trigger pressed: %d\n", getTriggerCount());
+        } else if(message.type == QuestMessageTypeId::calibrationData) {
             setCalibData(message.data.c_str());
         } else {
             /*printf("message type:%u size:%u\n", message.type, message.data.size()-1);
@@ -409,6 +412,35 @@ extern "C"
 		    }
 		}
 		return -1;
+	}
+	
+	const char *questMessageTypeId2Str(unsigned int type)
+	{
+		switch(type)
+		{
+			case QuestMessageTypeId::userId:
+				return "userId";
+			case QuestMessageTypeId::dataVersion:
+				return "dataVersion";
+			case QuestMessageTypeId::poseUpdate:
+				return "poseUpdate";
+			case QuestMessageTypeId::primaryButtonPressed:
+				return "primaryButtonPressed";
+			case QuestMessageTypeId::secondaryButtonPressed:
+				return "secondaryButtonPressed";
+			case QuestMessageTypeId::calibrationData:
+				return "calibrationData";
+			case QuestMessageTypeId::clearCalibration:
+				return "clearCalibration";
+			case QuestMessageTypeId::operationComplete:
+				return "operationComplete";
+			case QuestMessageTypeId::stateChangePause:
+				return "stateChangePause";
+			case QuestMessageTypeId::adjustKey:
+				return "adjustKey";
+			default:
+				return "unknown";
+		}
 	}
 
 	QuestCommunicator *createQuestCommunicatorRawPtr()
