@@ -9,6 +9,51 @@
 using namespace libQuestMR;
 using namespace RPCameraInterface;
 
+void testRecord(const char *ipAddr, const char *outputFile)
+{
+	std::shared_ptr<CameraInterface> cam;
+	ImageFormat srcFormat;
+	if(!configureCamera(cam, &srcFormat)) {
+		printf("error configuring camera!!\n");
+		return ;
+	}
+	std::shared_ptr<VideoEncoder> videoEncoder = createVideoEncoder();
+	videoEncoder->setUseFrameTimestamp(true);
+	if(outputFile != NULL)
+		videoEncoder->open(outputFile, srcFormat.height, srcFormat.width, 30);
+
+	//Choose the conversion format and initialize the converter
+    ImageFormat dstFormat(ImageType::BGR24, srcFormat.width, srcFormat.height);
+    ImageFormatConverter converter(srcFormat, dstFormat);
+	
+	std::shared_ptr<ImageData> imgData2 = createImageData();
+	while(true)
+    {     
+     	//Obtain the frame
+        std::shared_ptr<ImageData> imgData = cam->getNewFrame(true);
+        //Conver to the output format (BGR 720x480)
+        converter.convertImage(imgData, imgData2);
+        //Create OpenCV Mat for visualization
+        cv::Mat frame(imgData2->getImageFormat().height, imgData2->getImageFormat().width, CV_8UC3, imgData2->getDataPtr());
+        
+		if (frame.empty()) {
+            printf("error : empty frame grabbed");
+            break;
+        }
+
+		printf("timestamp %d\n", imgData2->getTimestamp());
+
+		if(outputFile != NULL)
+			videoEncoder->write(createImageDataFromMat(frame, imgData2->getTimestamp(), false));
+		cv::imshow("img", frame);
+		int key = cv::waitKey(10);
+		if(key > 0)
+			break;
+	}
+	if(outputFile != NULL)
+		videoEncoder->release();
+}
+
 void captureFromQuest(const char *ipAddr, const char *outputFile)
 {
 	std::shared_ptr<CameraInterface> cam;
@@ -35,7 +80,7 @@ void captureFromQuest(const char *ipAddr, const char *outputFile)
     
     std::shared_ptr<ImageData> imgData2 = createImageData();
 
-	std::shared_ptr<H264Encoder> videoEncoder = createH264Encoder();
+	std::shared_ptr<VideoEncoder> videoEncoder = createVideoEncoder();
 	videoEncoder->setUseFrameTimestamp(true);
 	if(outputFile != NULL)
 		videoEncoder->open(outputFile, srcFormat.height, srcFormat.width);
@@ -89,7 +134,8 @@ int main(int argc, char** argv)
 	if(argc < 2) {
 		printf("usage: demo-capture-RPCam ipAddr file\n");
 	} else {
-		captureFromQuest(argv[1], argc >= 2 ? argv[2] : NULL);
+		//captureFromQuest(argv[1], argc >= 2 ? argv[2] : NULL);
+		testRecord(argv[1], argc >= 2 ? argv[2] : NULL);
     }
     return 0;
 }
