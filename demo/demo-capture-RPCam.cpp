@@ -134,8 +134,8 @@ int main(int argc, char** argv)
 	if(argc < 2) {
 		printf("usage: demo-capture-RPCam ipAddr file\n");
 	} else {
-		//captureFromQuest(argv[1], argc >= 2 ? argv[2] : NULL);
-		testRecord(argv[1], argc >= 2 ? argv[2] : NULL);
+		captureFromQuest(argv[1], argc >= 2 ? argv[2] : NULL);
+		//testRecord(argv[1], argc >= 2 ? argv[2] : NULL);
     }
     return 0;
 }
