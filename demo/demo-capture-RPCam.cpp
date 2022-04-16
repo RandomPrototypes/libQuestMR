@@ -1,6 +1,8 @@
 #include <stdio.h>
+#include <thread>
 
 #include <libQuestMR/QuestVideoMngr.h>
+#include <libQuestMR/BackgroundSubtractor.h>
 #include <RPCameraInterface/ImageFormatConverter.h>
 #include <RPCameraInterface/OpenCVConverter.h>
 #include <RPCameraInterface/VideoEncoder.h>
@@ -9,53 +11,10 @@
 using namespace libQuestMR;
 using namespace RPCameraInterface;
 
-void testRecord(const char *ipAddr, const char *outputFile)
-{
-	std::shared_ptr<CameraInterface> cam;
-	ImageFormat srcFormat;
-	if(!configureCamera(cam, &srcFormat)) {
-		printf("error configuring camera!!\n");
-		return ;
-	}
-	std::shared_ptr<VideoEncoder> videoEncoder = createVideoEncoder();
-	videoEncoder->setUseFrameTimestamp(true);
-	if(outputFile != NULL)
-		videoEncoder->open(outputFile, srcFormat.height, srcFormat.width, 30);
-
-	//Choose the conversion format and initialize the converter
-    ImageFormat dstFormat(ImageType::BGR24, srcFormat.width, srcFormat.height);
-    ImageFormatConverter converter(srcFormat, dstFormat);
-	
-	std::shared_ptr<ImageData> imgData2 = createImageData();
-	while(true)
-    {     
-     	//Obtain the frame
-        std::shared_ptr<ImageData> imgData = cam->getNewFrame(true);
-        //Conver to the output format (BGR 720x480)
-        converter.convertImage(imgData, imgData2);
-        //Create OpenCV Mat for visualization
-        cv::Mat frame(imgData2->getImageFormat().height, imgData2->getImageFormat().width, CV_8UC3, imgData2->getDataPtr());
-        
-		if (frame.empty()) {
-            printf("error : empty frame grabbed");
-            break;
-        }
-
-		printf("timestamp %d\n", imgData2->getTimestamp());
-
-		if(outputFile != NULL)
-			videoEncoder->write(createImageDataFromMat(frame, imgData2->getTimestamp(), false));
-		cv::imshow("img", frame);
-		int key = cv::waitKey(10);
-		if(key > 0)
-			break;
-	}
-	if(outputFile != NULL)
-		videoEncoder->release();
-}
-
 void captureFromQuest(const char *ipAddr, const char *outputFile)
 {
+	int mask_subsample_factor = 2;
+
 	std::shared_ptr<CameraInterface> cam;
 	ImageFormat srcFormat;
 	if(!configureCamera(cam, &srcFormat)) {
@@ -63,7 +22,19 @@ void captureFromQuest(const char *ipAddr, const char *outputFile)
 		return ;
 	}
 	
-	cv::Ptr<cv::BackgroundSubtractor> pBackSub = cv::createBackgroundSubtractorMOG2();
+	printf("Choose background subtraction method:\n");
+	for(int i = 0; i < getBackgroundSubtractorCount(); i++)
+		printf("%d: %s\n", i, getBackgroundSubtractorName(i).c_str());
+	int bgMethodId = -1;
+	while(bgMethodId < 0 || bgMethodId >= getBackgroundSubtractorCount())
+	{
+		printf("Which method? ");
+		scanf("%d", &bgMethodId);
+	}
+	//std::shared_ptr<libQuestMR::BackgroundSubtractor> backgroundSub = createBackgroundSubtractorOpenCV(cv::createBackgroundSubtractorMOG2());
+	//std::shared_ptr<libQuestMR::BackgroundSubtractor> backgroundSub = createBackgroundSubtractorChromaKey(20, 50, true);
+	//std::shared_ptr<libQuestMR::BackgroundSubtractor> backgroundSub = createBackgroundSubtractorRobustVideoMattingONNX("../rvm_mobilenetv3_fp32.onnx", true);
+	std::shared_ptr<libQuestMR::BackgroundSubtractor> backgroundSub = createBackgroundSubtractor(bgMethodId);
 	
     std::shared_ptr<QuestVideoMngr> mngr = createQuestVideoMngr();
     std::shared_ptr<QuestVideoSourceBufferedSocket> videoSrc = createQuestVideoSourceBufferedSocket();
@@ -72,6 +43,11 @@ void captureFromQuest(const char *ipAddr, const char *outputFile)
     	return;
     }
     mngr->attachSource(videoSrc);
+
+	printf("create thread...\n");
+	std::shared_ptr<QuestVideoMngrThreadData> questVideoMngrThreadData = createQuestVideoMngrThreadData(mngr);
+	std::thread questVideoMngrThread(QuestVideoMngrThreadFunc, questVideoMngrThreadData.get());
+
     
     
     //Choose the conversion format and initialize the converter
@@ -86,8 +62,8 @@ void captureFromQuest(const char *ipAddr, const char *outputFile)
 		videoEncoder->open(outputFile, srcFormat.height, srcFormat.width);
     while(true)
     {
-        mngr->VideoTickImpl();
-        cv::Mat questImg = mngr->getMostRecentImg();
+		uint64_t timestamp;
+        cv::Mat questImg = questVideoMngrThreadData->getMostRecentImg(&timestamp);
      
      	//Obtain the frame
         std::shared_ptr<ImageData> imgData = cam->getNewFrame(true);
@@ -102,8 +78,15 @@ void captureFromQuest(const char *ipAddr, const char *outputFile)
         }
         
         cv::Mat fgMask;
-        pBackSub->apply(frame, fgMask);
-        
+		if(mask_subsample_factor > 1) {
+			cv::Mat frameLow;
+			cv::resize(frame, frameLow, cv::Size(frame.cols/mask_subsample_factor, frame.rows/mask_subsample_factor));
+			backgroundSub->apply(frameLow, fgMask);
+			cv::resize(fgMask, fgMask, frame.size());
+		} else {
+			backgroundSub->apply(frame, fgMask);
+		}
+
         printf("quest: %dx%d, camera %dx%d\n", questImg.cols, questImg.rows, frame.cols, frame.rows);
         if(!frame.empty())
         {
@@ -123,6 +106,8 @@ void captureFromQuest(const char *ipAddr, const char *outputFile)
 		if(key > 0)
 			break;
     }
+	questVideoMngrThreadData->setFinishedVal(true);
+	questVideoMngrThread.join();
 	if(outputFile != NULL)
 		videoEncoder->release();
     mngr->detachSource();
@@ -134,8 +119,7 @@ int main(int argc, char** argv)
 	if(argc < 2) {
 		printf("usage: demo-capture-RPCam ipAddr file\n");
 	} else {
-		captureFromQuest(argv[1], argc >= 2 ? argv[2] : NULL);
-		//testRecord(argv[1], argc >= 2 ? argv[2] : NULL);
+		captureFromQuest(argv[1], argc >= 3 ? argv[2] : NULL);
     }
     return 0;
 }

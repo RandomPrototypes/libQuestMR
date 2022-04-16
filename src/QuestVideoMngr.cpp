@@ -16,6 +16,7 @@
 
 #include <libQuestMR/QuestVideoMngr.h>
 #include <fcntl.h>
+#include <thread>
 #include "log.h"
 #include "frame.h"
 
@@ -424,7 +425,7 @@ void QuestVideoMngrImpl::VideoTickImpl(bool skipOldFrames)
 		        	++m_videoFrameIndex;
 		        }
 
-                if(skipOldFrames)
+                if(!skipOldFrames)
                     break;
             }
             else if (frame->m_type == Frame::PayloadType::AUDIO_SAMPLERATE)
@@ -607,10 +608,70 @@ void QuestVideoSourceBufferedSocketImpl::Disconnect()
     m_connectSocket->disconnect();
 }
 
+class QuestVideoMngrThreadDataImpl : public QuestVideoMngrThreadData
+{
+public:
+    QuestVideoMngrThreadDataImpl(std::shared_ptr<QuestVideoMngr> mngr)
+		:mngr(mngr)
+	{
+		finished = false;
+	}
+
+    virtual ~QuestVideoMngrThreadDataImpl()
+    {
+    }
+
+    //Thread-safe function to set if the communication is finished
+    virtual void setFinishedVal(bool val)
+    {
+        finished = val;
+    }
+
+    //Thread-safe function to know if the communication is finished
+    virtual bool isFinished()
+    {
+        return finished;
+    }
+    
+    #ifdef LIBQUESTMR_USE_OPENCV
+    virtual cv::Mat getMostRecentImg(uint64_t *timestamp)
+    {
+        cv::Mat questImg;
+		mutex.lock();
+		questImg = mngr->getMostRecentImg(timestamp).clone();
+		mutex.unlock();
+		return questImg;
+    }
+    #endif
+    
+    virtual void threadFunc()
+    {
+        while(!isFinished())
+		{
+			mutex.lock();
+			mngr->VideoTickImpl();
+			mutex.unlock();
+            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+		}
+    }
+private:
+    std::mutex mutex;
+	std::shared_ptr<QuestVideoMngr> mngr;
+	bool finished;
+};
+
+QuestVideoMngrThreadData::~QuestVideoMngrThreadData()
+{
+}
 
 
 extern "C" 
 {
+    void QuestVideoMngrThreadFunc(QuestVideoMngrThreadData *data)
+    {
+        data->threadFunc();
+    }
+
 	QuestVideoSourceBufferedSocket *createQuestVideoSourceBufferedSocketRawPtr()
 	{
 		return new QuestVideoSourceBufferedSocketImpl();
@@ -634,6 +695,16 @@ extern "C"
 	void deleteQuestVideoMngrRawPtr(QuestVideoMngr *videoMngr)
 	{
 		delete videoMngr;
+	}
+
+    QuestVideoMngrThreadData *createQuestVideoMngrThreadDataRawPtr(std::shared_ptr<QuestVideoMngr> mngr)
+	{
+		return new QuestVideoMngrThreadDataImpl(mngr);
+	}
+	
+	void deleteQuestVideoMngrThreadDataRawPtr(QuestVideoMngrThreadData *threadData)
+	{
+		delete threadData;
 	}
 
 #ifdef LIBQUESTMR_USE_OPENCV

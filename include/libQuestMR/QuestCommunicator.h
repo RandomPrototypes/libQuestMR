@@ -117,10 +117,9 @@ public:
     virtual void threadFunc() = 0;
 };
 
-LQMR_EXPORTS void QuestCommunicatorThreadFunc(QuestCommunicatorThreadData *data);
-
 extern "C"
-{
+{	
+	LQMR_EXPORTS void QuestCommunicatorThreadFunc(QuestCommunicatorThreadData *data);
 	//search for the message start "magic value": 0x6ba78352
 	//mainly for debug purpose, you do not need it if the protocol is implemented correctly
 	LQMR_EXPORTS int findMessageStart(const char *buffer, int length, int start = 0);

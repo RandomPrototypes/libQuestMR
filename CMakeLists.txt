@@ -80,6 +80,7 @@ SET (LIB_INCLUDE
              include/libQuestMR/QuestFrameData.h
              include/libQuestMR/QuestCommunicator.h
              include/libQuestMR/QuestStringUtil.h
+             include/libQuestMR/BackgroundSubtractor.h
              include/libQuestMR/PortableTypes.h
              ${tinyxml2}/tinyxml2.h)
 
@@ -90,6 +91,10 @@ SET (LIB_SRC
             src/QuestFrameData.cpp
             src/QuestCommunicator.cpp
             src/QuestStringUtil.cpp
+            src/BackgroundSubtractor.cpp
+            src/BackgroundSubtractorOpenCV.cpp
+            src/BackgroundSubtractorChromaKey.cpp
+            src/BackgroundSubtractorRobustVideoMattingONNX.cpp
             src/PortableTypes.cpp
             ${tinyxml2}/tinyxml2.cpp)
 
@@ -99,6 +104,11 @@ add_library(libQuestMR SHARED ${LIB_SRC} ${LIB_INCLUDE})
 target_compile_definitions(libQuestMR PRIVATE "LIBQUESTMR_EXPORTS")
 set_target_properties(libQuestMR PROPERTIES VERSION ${PROJECT_VERSION})
 #set_target_properties(libQuestMR PROPERTIES PUBLIC_HEADER ${LIB_INCLUDE})
+
+if(USE_ONNX_RUNTIME)
+	target_compile_definitions(libQuestMR PRIVATE "USE_ONNX_RUNTIME")
+	target_link_libraries(libQuestMR PRIVATE ${ONNX_RUNTIME_LIB})
+endif()
 
 target_compile_definitions(libQuestMR PRIVATE "_CRT_SECURE_NO_WARNINGS")
 

@@ -83,14 +83,35 @@ public:
 	#endif
 };
 
+class LQMR_EXPORTS QuestVideoMngrThreadData
+{
+public:
+    virtual ~QuestVideoMngrThreadData();
+
+    //Thread-safe function to set if the communication is finished
+    virtual void setFinishedVal(bool val) = 0;
+
+    //Thread-safe function to know if the communication is finished
+    virtual bool isFinished() = 0;
+ 
+    virtual void threadFunc() = 0;
+    
+#ifdef LIBQUESTMR_USE_OPENCV
+    virtual cv::Mat getMostRecentImg(uint64_t *timestamp) = 0;
+#endif
+};
+
 extern "C" 
 {
+    LQMR_EXPORTS void QuestVideoMngrThreadFunc(QuestVideoMngrThreadData *data);
 	LQMR_EXPORTS QuestVideoSourceBufferedSocket *createQuestVideoSourceBufferedSocketRawPtr();
 	LQMR_EXPORTS void deleteQuestVideoSourceBufferedSocketRawPtr(QuestVideoSourceBufferedSocket *videoSource);
 	LQMR_EXPORTS QuestVideoSourceFile *createQuestVideoSourceFileRawPtr();
 	LQMR_EXPORTS void deleteQuestVideoSourceFileRawPtr(QuestVideoSourceFile *videoSource);
 	LQMR_EXPORTS QuestVideoMngr *createQuestVideoMngrRawPtr();
 	LQMR_EXPORTS void deleteQuestVideoMngrRawPtr(QuestVideoMngr *videoMngr);
+	LQMR_EXPORTS QuestVideoMngrThreadData *createQuestVideoMngrThreadDataRawPtr(std::shared_ptr<QuestVideoMngr> mngr);
+	LQMR_EXPORTS void deleteQuestVideoMngrThreadDataRawPtr(QuestVideoMngrThreadData *threadData);
 
 #ifdef LIBQUESTMR_USE_OPENCV
 	LQMR_EXPORTS cv::Mat composeMixedRealityImg(const cv::Mat& questImg, const cv::Mat& camImg, const cv::Mat& camAlpha);
@@ -102,7 +123,7 @@ inline std::shared_ptr<QuestVideoSourceBufferedSocket> createQuestVideoSourceBuf
 	return std::shared_ptr<QuestVideoSourceBufferedSocket>(createQuestVideoSourceBufferedSocketRawPtr(), deleteQuestVideoSourceBufferedSocketRawPtr);
 }
 
-inline std::shared_ptr<QuestVideoSourceFile> createQuestVideoSourceFile()
+	inline std::shared_ptr<QuestVideoSourceFile> createQuestVideoSourceFile()
 {
 	return std::shared_ptr<QuestVideoSourceFile>(createQuestVideoSourceFileRawPtr(), deleteQuestVideoSourceFileRawPtr);
 }
@@ -110,6 +131,11 @@ inline std::shared_ptr<QuestVideoSourceFile> createQuestVideoSourceFile()
 inline std::shared_ptr<QuestVideoMngr> createQuestVideoMngr()
 {
 	return std::shared_ptr<QuestVideoMngr>(createQuestVideoMngrRawPtr(), deleteQuestVideoMngrRawPtr);
+}
+
+inline std::shared_ptr<QuestVideoMngrThreadData> createQuestVideoMngrThreadData(std::shared_ptr<QuestVideoMngr> mngr)
+{
+	return std::shared_ptr<QuestVideoMngrThreadData>(createQuestVideoMngrThreadDataRawPtr(mngr), deleteQuestVideoMngrThreadDataRawPtr);
 }
 
 }

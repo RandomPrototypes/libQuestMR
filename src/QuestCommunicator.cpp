@@ -391,16 +391,15 @@ void QuestCommunicatorThreadDataImpl::threadFunc()
 }
 
 
-void QuestCommunicatorThreadFunc(QuestCommunicatorThreadData *data)
-{
-    data->threadFunc();
-}
-
-
 
 
 extern "C" 
 {
+    void QuestCommunicatorThreadFunc(QuestCommunicatorThreadData *data)
+    {
+        data->threadFunc();
+    }
+    
 	int findMessageStart(const char *buffer, int length, int start)
 	{
 		for(int i = start; i+4 < length; i++)
