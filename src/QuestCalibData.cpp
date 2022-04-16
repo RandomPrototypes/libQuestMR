@@ -497,6 +497,42 @@ bool QuestCalibData::calibrateCamPose(const std::vector<cv::Point3d>& listPoint3
     mat2vec<double>(Rt_inv(cv::Rect(3,0,1,3)), translation, 3);
     return true;
 }
+
+double QuestCalibData::calcReprojectionError(const std::vector<cv::Point3d>& listPoint3d, const std::vector<cv::Point2d>& listPoint2d) const
+{
+    double reproj_error = 0;
+    for(size_t i = 0; i < listPoint3d.size(); i++) {
+        cv::Point2d delta = listPoint2d[i] - projectToCam(listPoint3d[i]);
+        reproj_error += delta.dot(delta);
+    }
+    reproj_error = sqrt(reproj_error / listPoint3d.size());
+    return reproj_error;
+}
+
+bool QuestCalibData::calibrateCamIntrinsicAndPose(const std::vector<cv::Point3d>& listPoint3d, const std::vector<cv::Point2d>& listPoint2d, cv::Size imgSize, bool print_fov_results)
+{
+	double best_fov = 30*CV_PI/180;
+	double best_reproj = std::numeric_limits<double>::max();
+	for(double fov_deg = 30; fov_deg < 170; fov_deg += 1) 
+	{
+		double fov = fov_deg * CV_PI / 180;
+		setCameraFromSizeAndFOV(fov, imgSize.width, imgSize.height);
+		calibrateCamPose(listPoint3d, listPoint2d);
+		double reproj_error = calcReprojectionError(listPoint3d, listPoint2d);
+		if(reproj_error < best_reproj) {
+			best_reproj = reproj_error;
+			best_fov = fov;
+		}
+        if(print_fov_results)
+		    printf("fov %lf deg : err %lf\n", fov_deg, reproj_error);
+	}
+    
+	setCameraFromSizeAndFOV(best_fov, imgSize.width, imgSize.height);
+	bool res = calibrateCamPose(listPoint3d, listPoint2d);
+    if(print_fov_results)
+        printf("best fov: %lf deg : err %lf\n", best_fov * 180 / CV_PI, calcReprojectionError(listPoint3d, listPoint2d));
+    return res;
+}
 #endif
 
 

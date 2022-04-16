@@ -139,28 +139,7 @@ void captureAndCalibrateFull(const char *ipAddr, const char *outputFilename)
 	}
 	
 	QuestCalibData calibData;
-	double best_fov = 45*CV_PI/180;
-	double best_reproj = std::numeric_limits<double>::max();
-	for(double fov_deg = 45; fov_deg < 170; fov_deg += 1) 
-	{
-		double fov = fov_deg * CV_PI / 180;
-		calibData.setCameraFromSizeAndFOV(fov, listImg[0].cols, listImg[0].rows);
-		calibData.calibrateCamPose(listRightHandPos, listPoints2D);
-		double reproj_error = 0;
-		for(size_t i = 0; i < listRightHandPos.size(); i++) {
-			cv::Point2d delta = listPoints2D[i] - calibData.projectToCam(listRightHandPos[i]);
-			reproj_error += delta.dot(delta);
-		}
-		reproj_error = sqrt(reproj_error / listRightHandPos.size());
-		if(reproj_error < best_reproj) {
-			best_reproj = reproj_error;
-			best_fov = fov;
-		}
-		printf("fov %lf deg : err %lf\n", fov_deg, reproj_error);
-	}
-	printf("best fov: %lf deg\n", best_fov * 180 / CV_PI);
-	calibData.setCameraFromSizeAndFOV(best_fov, listImg[0].cols, listImg[0].rows);
-	calibData.calibrateCamPose(listRightHandPos, listPoints2D);
+	calibData.calibrateCamIntrinsicAndPose(listRightHandPos, listPoints2D, listImg[0].size(), true);
 
 	std::string xmlStr = calibData.generateXMLString().str();
 	FILE *file = fopen(outputFilename, "w");

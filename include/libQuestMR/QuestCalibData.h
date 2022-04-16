@@ -70,8 +70,10 @@ public:
     cv::Mat getFlipXMat() const;
 
     cv::Point2d projectToCam(cv::Point3d p) const;
+    double calcReprojectionError(const std::vector<cv::Point3d>& listPoint3d, const std::vector<cv::Point2d>& listPoint2d) const;
 
     bool calibrateCamPose(const std::vector<cv::Point3d>& listPoint3d, const std::vector<cv::Point2d>& listPoint2d);
+    bool calibrateCamIntrinsicAndPose(const std::vector<cv::Point3d>& listPoint3d, const std::vector<cv::Point2d>& listPoint2d, cv::Size imgSize, bool print_fov_results = false);
 #endif
 
 private:
