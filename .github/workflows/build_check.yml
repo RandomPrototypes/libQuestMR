@@ -60,9 +60,9 @@ jobs:
         cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/opencv/install -DWITH_CUDA=OFF -DBUILD_TESTS=OFF -DBUILD_PERF_TESTS=OFF -DBUILD_EXAMPLES=OFF ..
         cmake --build ${{github.workspace}}/opencv/release --config ${{env.BUILD_TYPE}}
         cmake --install ${{github.workspace}}/opencv/release 
-        C:\msys64\usr\bin\wget.exe -q -O ${{github.workspace}}/ffmpeg.zip https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n5.0-latest-win64-gpl-shared-5.0.zip
+        C:\msys64\usr\bin\wget.exe -q -O ${{github.workspace}}/ffmpeg.zip https://github.com/GyanD/codexffmpeg/releases/download/4.4.1/ffmpeg-4.4.1-full_build-shared.zip
         7z x ${{github.workspace}}/ffmpeg.zip -o"${{github.workspace}}"
-        mv ${{github.workspace}}/ffmpeg-n5.0-latest-win64-gpl-shared-5.0 ${{github.workspace}}/ffmpeg
+        mv ${{github.workspace}}/ffmpeg-4.4.1-full_build-shared ${{github.workspace}}/ffmpeg
 
     - name: Install libav and OpenCV
       if: runner.os == 'macOS'
