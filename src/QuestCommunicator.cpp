@@ -133,14 +133,18 @@ bool QuestCommunicatorImpl::readMessage(QuestCommunicatorMessage *output)
     }
     output->type = toUInt32(header+4);
     uint32_t length = toUInt32(header+8);
-    std::vector<char> data;
-    data.resize(length);
-    if(sock->readNBytes(&data[0], length) != length)
-    {
-        onError("Can not read message content");
-        return false;
+    if(length > 0) {
+        std::vector<char> data;
+        data.resize(length);
+        if(length > 0 && sock->readNBytes(&data[0], length) != length)
+        {
+            onError("Can not read message content");
+            return false;
+        }
+        output->data = PortableString(&data[0], data.size());
+    } else {
+        output->data = PortableString();
     }
-    output->data = PortableString(&data[0], data.size());
     return true;
 }
 

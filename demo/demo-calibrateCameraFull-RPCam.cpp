@@ -106,7 +106,7 @@ void captureAndCalibrateFull(const char *ipAddr, const char *outputFilename)
         	float ratio = static_cast<float>(maxImgSize) / std::max(frame.cols, frame.rows);
         	cv::resize(img, img, cv::Size(cvRound(frame.cols * ratio), cvRound(frame.rows * ratio)));
         }
-        cv::putText(img, "nb images: "+std::to_string(listImg.size()), cv::Point(20, 20),  cv::FONT_HERSHEY_DUPLEX, 0.7, cv::Scalar(0, 0, 255), 2);
+        cv::putText(img, "nb images: "+std::to_string(listImg.size())+"/"+std::to_string(std::max(5, (int)listImg.size()))+", press 'c' to calibrate", cv::Point(20, 20),  cv::FONT_HERSHEY_DUPLEX, 0.7, cv::Scalar(0, 0, 255), 2);
         cv::imshow("img", img);
         int key = cv::waitKey(20);
         if(key == 'c' && listImg.size() >= 5)

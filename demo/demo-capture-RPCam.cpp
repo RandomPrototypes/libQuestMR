@@ -11,6 +11,60 @@
 using namespace libQuestMR;
 using namespace RPCameraInterface;
 
+class MouseData
+{
+public:
+    int x,y;
+    bool leftDown;
+
+	MouseData()
+		:leftDown(false), x(0), y(0)
+	{
+	}
+};
+
+void MouseCallBackFunc(int event, int x, int y, int flags, void* userdata)
+{
+    MouseData *data = (MouseData*)userdata;
+    if(event == cv::EVENT_LBUTTONDOWN) {
+        data->leftDown = true;
+    } else if(event == cv::EVENT_LBUTTONUP) {
+        data->leftDown = false;
+    }
+    data->x = x;
+    data->y = y;
+}
+
+std::vector<cv::Point> selectQuad(cv::Mat img)
+{
+	cv::namedWindow("img");
+	std::vector<cv::Point> list;
+	bool wasLeftDown = false;
+	MouseData mouseData;
+    cv::setMouseCallback("img", MouseCallBackFunc, &mouseData);
+
+	while(list.size() < 4) {
+		if(mouseData.leftDown)
+			wasLeftDown = true;
+		else if(wasLeftDown) {
+			list.push_back(cv::Point(mouseData.x, mouseData.y));
+			wasLeftDown = false;
+		}
+		cv::Mat img2 = img.clone();
+		for(size_t i = 0; i < list.size(); i++)
+		{
+			cv::circle(img2, list[i], 5, cv::Scalar(0,0,255), 2);
+			if(i+1 < list.size())
+				cv::line(img2, list[i], list[i+1], cv::Scalar(0,0,255), 2);
+			else cv::line(img2, list[i], cv::Point(mouseData.x, mouseData.y), cv::Scalar(0,0,255), 2);
+		}
+		cv::circle(img2, cv::Point(mouseData.x, mouseData.y), 5, cv::Scalar(0,255,0), 2);
+		cv::imshow("img", img2);
+		cv::waitKey(10);
+	}
+	return list;
+}
+
 void captureFromQuest(const char *ipAddr, const char *outputFile)
 {
 	int mask_subsample_factor = 2;
@@ -32,7 +86,7 @@ void captureFromQuest(const char *ipAddr, const char *outputFile)
 		scanf("%d", &bgMethodId);
 	}
 	//std::shared_ptr<libQuestMR::BackgroundSubtractor> backgroundSub = createBackgroundSubtractorOpenCV(cv::createBackgroundSubtractorMOG2());
-	//std::shared_ptr<libQuestMR::BackgroundSubtractor> backgroundSub = createBackgroundSubtractorChromaKey(20, 50, true);
+	//std::shared_ptr<libQuestMR::BackgroundSubtractor> backgroundSub = createBackgroundSubtractorChromaKey(40, 60, true);
 	//std::shared_ptr<libQuestMR::BackgroundSubtractor> backgroundSub = createBackgroundSubtractorRobustVideoMattingONNX("../rvm_mobilenetv3_fp32.onnx", true);
 	std::shared_ptr<libQuestMR::BackgroundSubtractor> backgroundSub = createBackgroundSubtractor(bgMethodId);
 	
@@ -60,6 +114,10 @@ void captureFromQuest(const char *ipAddr, const char *outputFile)
 	videoEncoder->setUseFrameTimestamp(true);
 	if(outputFile != NULL)
 		videoEncoder->open(outputFile, srcFormat.height, srcFormat.width);
+	
+	std::vector<cv::Point> border;
+	cv::Mat maskBorder;
+
     while(true)
     {
 		uint64_t timestamp;
@@ -76,6 +134,15 @@ void captureFromQuest(const char *ipAddr, const char *outputFile)
             printf("error : empty frame grabbed");
             break;
         }
+
+		if(border.size() == 0) {
+			border = selectQuad(frame);
+			maskBorder = cv::Mat::zeros(frame.size(), CV_8UC1);
+			const cv::Point* ppt[1] = { &border[0] };
+			int npt[] = { 4 };
+			cv::fillPoly(maskBorder, ppt, npt, 1, cv::Scalar( 255 ), cv::LINE_8);
+			cv::imshow("mask", maskBorder);
+		}
         
         cv::Mat fgMask;
 		if(mask_subsample_factor > 1) {
@@ -85,6 +152,15 @@ void captureFromQuest(const char *ipAddr, const char *outputFile)
 			cv::resize(fgMask, fgMask, frame.size());
 		} else {
 			backgroundSub->apply(frame, fgMask);
+		}
+		for(int i = 0; i < fgMask.rows; i++)
+		{
+			unsigned char *dst = fgMask.ptr<unsigned char>(i);
+			unsigned char *src = maskBorder.ptr<unsigned char>(i);
+			for(int j = 0; j < fgMask.cols; j++) {
+				if(src[j] == 0)
+					dst[j] = 0;
+			}
 		}
 
         printf("quest: %dx%d, camera %dx%d\n", questImg.cols, questImg.rows, frame.cols, frame.rows);
