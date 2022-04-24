@@ -242,8 +242,8 @@ std::vector<std::pair<std::string, BackgroundSubtractorFnPtr> > getBackgroundSub
     std::vector<std::pair<std::string, BackgroundSubtractorFnPtr> > list;
     list.push_back(std::make_pair("OpenCV_KNN", [](){ return createBackgroundSubtractorOpenCVRawPtr(cv::createBackgroundSubtractorKNN());}));
     list.push_back(std::make_pair("OpenCV_MOG2", [](){ return createBackgroundSubtractorOpenCVRawPtr(cv::createBackgroundSubtractorMOG2());}));
-    list.push_back(std::make_pair("Greenscreen", [](){ return createBackgroundSubtractorChromaKeyRawPtr(20, 50, true, 104, 117);}));
-    list.push_back(std::make_pair("ChromaKey_diffFirstFrame", [](){ return createBackgroundSubtractorChromaKeyRawPtr(20, 50, false, 0, 0);}));
+    list.push_back(std::make_pair("Greenscreen", [](){ return createBackgroundSubtractorChromaKeyRawPtr(22, 35, true, 104, 117);}));
+    list.push_back(std::make_pair("ChromaKey_diffFirstFrame", [](){ return createBackgroundSubtractorChromaKeyRawPtr(22, 35, false, 0, 0);}));
     list.push_back(std::make_pair("ONNX_RobustVideoMatting", [](){ return createBackgroundSubtractorRobustVideoMattingONNXRawPtr("rvm_mobilenetv3_fp32.onnx", false);}));
     list.push_back(std::make_pair("ONNX_RobustVideoMatting_CUDA", [](){ return createBackgroundSubtractorRobustVideoMattingONNXRawPtr("rvm_mobilenetv3_fp32.onnx", true);}));
     return list;

@@ -112,10 +112,6 @@ extern "C"
 	LQMR_EXPORTS void deleteQuestVideoMngrRawPtr(QuestVideoMngr *videoMngr);
 	LQMR_EXPORTS QuestVideoMngrThreadData *createQuestVideoMngrThreadDataRawPtr(std::shared_ptr<QuestVideoMngr> mngr);
 	LQMR_EXPORTS void deleteQuestVideoMngrThreadDataRawPtr(QuestVideoMngrThreadData *threadData);
-
-#ifdef LIBQUESTMR_USE_OPENCV
-	LQMR_EXPORTS cv::Mat composeMixedRealityImg(const cv::Mat& questImg, const cv::Mat& camImg, const cv::Mat& camAlpha);
-#endif
 }
 
 inline std::shared_ptr<QuestVideoSourceBufferedSocket> createQuestVideoSourceBufferedSocket()
@@ -137,5 +133,9 @@ inline std::shared_ptr<QuestVideoMngrThreadData> createQuestVideoMngrThreadData(
 {
 	return std::shared_ptr<QuestVideoMngrThreadData>(createQuestVideoMngrThreadDataRawPtr(mngr), deleteQuestVideoMngrThreadDataRawPtr);
 }
+
+#ifdef LIBQUESTMR_USE_OPENCV
+	LQMR_EXPORTS cv::Mat composeMixedRealityImg(const cv::Mat& questImg, const cv::Mat& camImg, const cv::Mat& camAlpha);
+#endif
 
 }

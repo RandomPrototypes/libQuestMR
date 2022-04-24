@@ -595,7 +595,7 @@ bool QuestVideoSourceBufferedSocketImpl::Connect(const char *ipaddr, uint32_t po
 
 int QuestVideoSourceBufferedSocketImpl::recv(char *buf, size_t bufferSize)
 {
-    return m_connectSocket->readData(buf, bufferSize);
+    return m_connectSocket->readData(buf, (int)bufferSize);
 }
 
 bool QuestVideoSourceBufferedSocketImpl::isValid()
@@ -706,6 +706,7 @@ extern "C"
 	{
 		delete threadData;
 	}
+}
 
 #ifdef LIBQUESTMR_USE_OPENCV
     cv::Mat composeMixedRealityImg(const cv::Mat& questImg, const cv::Mat& camImg, const cv::Mat& camAlpha)
@@ -748,6 +749,5 @@ extern "C"
         return result;
     }
 #endif
-}
 
 }

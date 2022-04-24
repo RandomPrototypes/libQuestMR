@@ -25,6 +25,8 @@ public:
 
     virtual void apply(cv::InputArray image, cv::OutputArray _fgmask, double learningRate=-1)
     {
+        if(softThresh <= hardThresh)
+            softThresh = hardThresh + 1;
         cv::Mat frameYCrCb;
 		cv::cvtColor(image, frameYCrCb, cv::COLOR_BGR2YCrCb);
     	if(backgroundYCrCb.empty())

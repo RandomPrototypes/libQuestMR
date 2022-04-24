@@ -102,8 +102,6 @@ extern "C"
 	LQMR_EXPORTS BackgroundSubtractor *createBackgroundSubtractorRobustVideoMattingONNXRawPtr(const char *onnxModelFilename, bool use_CUDA);
 	LQMR_EXPORTS void deleteBackgroundSubtractorRawPtr(BackgroundSubtractor *backgroundSubtractor);
 	
-	LQMR_EXPORTS int getBackgroundSubtractorCount();
-	LQMR_EXPORTS PortableString getBackgroundSubtractorName(int id);
 	LQMR_EXPORTS BackgroundSubtractor *createBackgroundSubtractorRawPtr(int id);
 }
 
@@ -112,7 +110,7 @@ inline std::shared_ptr<BackgroundSubtractor> createBackgroundSubtractorOpenCV(cv
 	return std::shared_ptr<BackgroundSubtractor>(createBackgroundSubtractorOpenCVRawPtr(pBackSub), deleteBackgroundSubtractorRawPtr);
 }
 
-inline std::shared_ptr<BackgroundSubtractor> createBackgroundSubtractorChromaKey(int _hardThresh = 20, int _softThresh = 50, bool _useSingleColor = true, int _backgroundCr = 104, int _backgroundCb = 117)
+inline std::shared_ptr<BackgroundSubtractor> createBackgroundSubtractorChromaKey(int _hardThresh = 22, int _softThresh = 35, bool _useSingleColor = true, int _backgroundCr = 104, int _backgroundCb = 117)
 {
 	return std::shared_ptr<BackgroundSubtractor>(createBackgroundSubtractorChromaKeyRawPtr(_hardThresh, _softThresh, _useSingleColor, _backgroundCr, _backgroundCb), deleteBackgroundSubtractorRawPtr);
 }
@@ -126,6 +124,9 @@ inline std::shared_ptr<BackgroundSubtractor> createBackgroundSubtractor(int id)
 {
 	return std::shared_ptr<BackgroundSubtractor>(createBackgroundSubtractorRawPtr(id), deleteBackgroundSubtractorRawPtr);
 }
+
+LQMR_EXPORTS int getBackgroundSubtractorCount();
+LQMR_EXPORTS PortableString getBackgroundSubtractorName(int id);
 
 }
 
