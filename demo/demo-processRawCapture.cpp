@@ -148,7 +148,7 @@ void processRawCapture(const char *recordName, const char *outputVideo)
 			border = selectShape("composedImg", frame.clone());
 			maskBorder = cv::Mat::zeros(frame.size(), CV_8UC1);
 			const cv::Point* ppt[1] = { &border[0] };
-			int npt[] = { border.size() };
+			int npt[] = { (int)border.size() };
 			cv::fillPoly(maskBorder, ppt, npt, 1, cv::Scalar( 255 ), cv::LINE_8);
 		}
 
