@@ -62,6 +62,7 @@ std::vector<cv::Point> selectQuad(cv::Mat img)
 		cv::imshow("img", img2);
 		cv::waitKey(10);
 	}
+	cv::setMouseCallback("img", NULL, NULL);
 	return list;
 }
 

@@ -52,6 +52,7 @@ std::vector<cv::Point> selectShape(const char *windowName, cv::Mat img)
 			wasLeftDown = false;
 		}
 		cv::Mat img2 = img.clone();
+		cv::putText(img2, "select the play area", cv::Point(20, 20),  cv::FONT_HERSHEY_DUPLEX, 0.7, cv::Scalar(0, 0, 255), 2);
 		for(size_t i = 0; i < list.size(); i++)
 		{
 			cv::circle(img2, list[i], 5, cv::Scalar(0,0,255), 2);
@@ -67,6 +68,7 @@ std::vector<cv::Point> selectShape(const char *windowName, cv::Mat img)
 		if(list.size() >= 4 && key > 0)
 			break;
 	}
+	cv::setMouseCallback(windowName, NULL, NULL);
 	return list;
 }
 
@@ -90,8 +92,11 @@ void processRawCapture(const char *recordName, const char *outputVideo)
 	}
 	std::shared_ptr<libQuestMR::BackgroundSubtractor> backgroundSub = createBackgroundSubtractor(bgMethodId);
 
-	std::shared_ptr<VideoEncoder> videoEncoder = createVideoEncoder();
-	videoEncoder->setUseFrameTimestamp(true);
+	std::shared_ptr<VideoEncoder> videoEncoder;
+	if(outputVideo != NULL) {
+		videoEncoder = createVideoEncoder();
+		videoEncoder->setUseFrameTimestamp(true);
+	}
 	std::ifstream timestampFile((std::string(recordName)+"_timestamp.txt").c_str());
 	cv::VideoCapture cap_quest((std::string(recordName)+"_quest.mp4").c_str());
 	cv::VideoCapture cap_cam((std::string(recordName)+"_cam.mp4").c_str());
@@ -140,7 +145,7 @@ void processRawCapture(const char *recordName, const char *outputVideo)
 			break;
 
 		if(firstFrame) {
-			border = selectShape("composedImg", frame);
+			border = selectShape("composedImg", frame.clone());
 			maskBorder = cv::Mat::zeros(frame.size(), CV_8UC1);
 			const cv::Point* ppt[1] = { &border[0] };
 			int npt[] = { border.size() };
@@ -169,25 +174,27 @@ void processRawCapture(const char *recordName, const char *outputVideo)
 		cv::Mat composedImg = composeMixedRealityImg(questImg, frame, fgMask);
 		cv::imshow("composedImg", composedImg);
 
-		if(firstFrame)
-			videoEncoder->open(outputVideo, composedImg.rows, composedImg.cols, 30, "", bitrate);
-		videoEncoder->write(createImageDataFromMat(composedImg, timestamp, false));
-
+		if(outputVideo != NULL) {
+			if(firstFrame)
+				videoEncoder->open(outputVideo, composedImg.rows, composedImg.cols, 30, "", bitrate);
+			videoEncoder->write(createImageDataFromMat(composedImg, timestamp, false));
+		}
 		int key = cv::waitKey(10);
 		if(key > 0)
 			break;
 		firstFrame = false;
 		last_timestamp = timestamp;
     }
-	videoEncoder->release();
+	if(outputVideo != NULL)
+		videoEncoder->release();
 }
 
 int main(int argc, char** argv) 
 {
-	if(argc < 3) {
+	if(argc < 2) {
 		printf("usage: demo-processRawCapture recordName outputVideo\n");
 	} else {
-		processRawCapture(argv[1], argv[2]);
+		processRawCapture(argv[1], argc >= 3 ? argv[2] : NULL);
     }
     return 0;
 }
