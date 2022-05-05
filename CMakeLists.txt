@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.11.0)
 project(libQuestMR VERSION 0.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 11)
 
+set(CMAKE_DEBUG_POSTFIX "d")
+
 include(FetchContent)
 
 include(CTest)
@@ -119,7 +121,6 @@ if(DEBUG_OCULUS_MRC_SOURCE)
 endif()
 
 if(BUILD_DEMO)
-	add_executable(libQuestMRDemo ${LIB_INCLUDE} demo/main.cpp)
 	add_executable(demo-connectToMRC ${LIB_INCLUDE} demo/demo-connectToMRC.cpp)
 	add_executable(demo-connectToMRC-raw ${LIB_INCLUDE} demo/demo-connectToMRC-raw.cpp)
 	add_executable(demo-capture ${LIB_INCLUDE} demo/demo-capture.cpp)
@@ -161,8 +162,6 @@ if(USE_FFMPEG)
 endif()
 
 if(BUILD_DEMO)
-	target_link_libraries(libQuestMRDemo PRIVATE ${OpenCV_LIBS})
-	target_link_libraries(libQuestMRDemo LINK_PUBLIC libQuestMR BufferedSocket)
 	target_link_libraries(demo-connectToMRC PRIVATE ${OpenCV_LIBS})
 	target_link_libraries(demo-connectToMRC LINK_PUBLIC libQuestMR BufferedSocket)
 	target_link_libraries(demo-connectToMRC-raw PRIVATE ${OpenCV_LIBS})
