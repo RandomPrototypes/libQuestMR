@@ -41,4 +41,4 @@ Video encoding/decoding is managed by [FFMPEG](https://github.com/FFmpeg/FFmpeg)
 
 ### Credits
 A part of the code is based on the official [OBS plugin for Quest 2](https://github.com/facebookincubator/obs-plugins).  
-Most of the rest of the code is based on wireshark captures and a little bit of reading of the code of [RealityMixer](https://github.com/fabio914/RealityMixer)
+Most of the rest of the code is based on wireshark captures and some reading of the code of [RealityMixer](https://github.com/fabio914/RealityMixer)
