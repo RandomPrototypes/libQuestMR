@@ -6,6 +6,9 @@ A mixed reality capture software is on development [here](https://github.com/Ran
 
 The master branch is hosted at https://github.com/RandomPrototypes/libQuestMR
 
+[![IMAGE ALT TEXT](http://img.youtube.com/vi/5r5InOlSnu4/0.jpg)](https://www.youtube.com/watch?v=5r5InOlSnu4 "Custom Mixed Reality in C++ with libQuestMR")
+
+
 ### Features
 
 Already implemented :  
