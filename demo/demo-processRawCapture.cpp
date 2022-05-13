@@ -81,6 +81,10 @@ void processRawCapture(const char *recordName, const char *outputVideo)
 	int mask_subsample_factor = 1;
 	int bitrate = 8000000;
 
+	bool removeGameBackground = false;
+	unsigned char gameBackgroundR = 52, gameBackgroundG = 75, gameBackgroundB = 115;
+	int threshGameBackground = 20;
+
 	printf("Choose background subtraction method:\n");
 	for(int i = 0; i < getBackgroundSubtractorCount(); i++)
 		printf("%d: %s\n", i, getBackgroundSubtractorName(i).c_str());
@@ -168,6 +172,19 @@ void processRawCapture(const char *recordName, const char *outputVideo)
 			for(int j = 0; j < fgMask.cols; j++) {
 				if(src[j] == 0)
 					dst[j] = 0;
+			}
+		}
+		if(removeGameBackground) {
+			for(int i = 0; i < fgMask.rows && i < questImg.rows; i++)
+			{
+				unsigned char *dst = fgMask.ptr<unsigned char>(i);
+				unsigned char *src = questImg.ptr<unsigned char>(i);
+				for(int j = 0; j < fgMask.cols && j < questImg.cols; j++) {
+					if(abs(src[j*3] - gameBackgroundB) < threshGameBackground
+					&& abs(src[j*3+1] - gameBackgroundG) < threshGameBackground
+					&& abs(src[j*3+2] - gameBackgroundR) < threshGameBackground)
+						dst[j] = 255;
+				}
 			}
 		}
 
