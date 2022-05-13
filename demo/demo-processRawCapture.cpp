@@ -76,8 +76,20 @@ static void on_trackbar( int, void* )
 {
 }
 
+bool test_file_exists(const char *fileName)
+{
+    std::ifstream infile(fileName);
+    return infile.good();
+}
+
+uint64_t absdiff(uint64_t a, uint64_t b)
+{
+	return a < b ? b-a : a-b;
+}
+
 void processRawCapture(const char *recordName, const char *outputVideo)
 {
+	bool recordDirectlyFromQuest = test_file_exists((std::string(recordName)+"_quest.questMRVideo").c_str());
 	int mask_subsample_factor = 1;
 	int bitrate = 8000000;
 
@@ -101,8 +113,20 @@ void processRawCapture(const char *recordName, const char *outputVideo)
 		videoEncoder = createVideoEncoder();
 		videoEncoder->setUseFrameTimestamp(true);
 	}
+
+	std::shared_ptr<QuestVideoMngr> mngr;
+	std::shared_ptr<QuestVideoSourceFile> videoSrc;
+	cv::VideoCapture cap_quest;
+	if(recordDirectlyFromQuest) {
+		mngr = createQuestVideoMngr();
+		videoSrc = createQuestVideoSourceFile();
+		videoSrc->open((std::string(recordName)+"_quest.questMRVideo").c_str());
+		mngr->attachSource(videoSrc);
+        mngr->setRecordedTimestampSource((std::string(recordName)+"_questTimestamp.txt").c_str());
+	} else {
+		cap_quest.open((std::string(recordName)+"_quest.mp4").c_str());
+	}
 	std::ifstream timestampFile((std::string(recordName)+"_timestamp.txt").c_str());
-	cv::VideoCapture cap_quest((std::string(recordName)+"_quest.mp4").c_str());
 	cv::VideoCapture cap_cam((std::string(recordName)+"_cam.mp4").c_str());
 
 	std::vector<cv::Point> border;
@@ -125,22 +149,51 @@ void processRawCapture(const char *recordName, const char *outputVideo)
 	}
 	bool firstFrame = true;
 	uint64_t last_timestamp = 0;
+	std::vector<uint64_t> listTimestamp;
 	while(std::getline(timestampFile, timestampStr))
 	{
 		uint64_t timestamp;
 		std::istringstream iss(timestampStr);
 		iss >> timestamp;
-		printf("%s\n", timestampStr.c_str());
-
+		listTimestamp.push_back(timestamp);
+	}
+	size_t frame_id = 0;
+	cv::Mat frame;
+	if(recordDirectlyFromQuest)
+		cap_cam >> frame;
+	while(frame_id < listTimestamp.size())
+	{
 		for(int i = 0; i < backgroundSub->getParameterCount(); i++) {
 			if(backgroundSub->getParameterType(i) == libQuestMR::BackgroundSubtractorParamType::ParamTypeInt) {
 				backgroundSub->setParameterVal(i, sliderVal[i]);
 			}
 		}
 
-		cv::Mat questImg, frame;
-		cap_quest >> questImg;
-		cap_cam >> frame;
+		cv::Mat questImg;
+		uint64_t timestamp;
+
+		if(recordDirectlyFromQuest) {
+			if(!videoSrc->isValid())
+                break;
+			mngr->VideoTickImpl();
+            uint64_t quest_timestamp;
+            questImg = mngr->getMostRecentImg(&quest_timestamp);
+			if(questImg.empty())
+				continue;
+			while(frame_id + 1 < listTimestamp.size() && absdiff(quest_timestamp, listTimestamp[frame_id+1]) < absdiff(quest_timestamp, listTimestamp[frame_id])) {
+				cap_cam >> frame;
+				frame_id++;
+			}
+			timestamp = listTimestamp[frame_id];
+			if(quest_timestamp > timestamp && frame_id + 1 == listTimestamp.size() && absdiff(quest_timestamp, timestamp) > 500)
+				break;
+
+		} else {
+			cap_quest >> questImg;
+			cap_cam >> frame;
+			timestamp = listTimestamp[frame_id];
+			frame_id++;
+		}
 
 		if(!firstFrame && timestamp <= last_timestamp)
 			continue;

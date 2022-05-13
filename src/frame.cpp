@@ -17,6 +17,7 @@
 #include "log.h"
 #include "frame.h"
 #include <string.h>
+#include "libQuestMR/QuestVideoMngr.h"
 
 namespace libQuestMR
 {
@@ -132,9 +133,7 @@ void FrameCollection::AddData(const uint8_t* data, uint32_t len)
 			frame->m_payload.assign(first, last);
 			m_frames.push_back(frame);
 
-			auto current_time = std::chrono::system_clock::now();
-			auto seconds_since_epoch = std::chrono::duration<double>(current_time.time_since_epoch()).count();
-            frame->localTimestamp = (uint64_t)(seconds_since_epoch*1000);
+            frame->localTimestamp = getTimestampMs();
 
 			if(timestampFile != NULL)
                 fprintf(timestampFile, "%llu\n", static_cast<unsigned long long>(frame->localTimestamp));
