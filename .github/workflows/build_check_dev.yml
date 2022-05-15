@@ -2,10 +2,10 @@ name: CMake
 
 on:
   push:
-    branches: [ master ]
+    branches: [ dev ]
     paths-ignore: ['**.md']
   pull_request:
-    branches: [ master ]
+    branches: [ dev ]
     paths-ignore: ['**.md']
 
 env:
@@ -74,7 +74,7 @@ jobs:
     - name: Clone RPCameraInterface
       run: |
         cd ${{github.workspace}}
-        git clone https://github.com/RandomPrototypes/RPCameraInterface.git
+        git clone -b dev https://github.com/RandomPrototypes/RPCameraInterface.git
         cd RPCameraInterface
         mkdir build
         mkdir install

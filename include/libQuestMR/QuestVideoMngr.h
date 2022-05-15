@@ -58,6 +58,18 @@ public:
     virtual void close() = 0;
 };
 
+class LQMR_EXPORTS QuestAudioData
+{
+public:
+	virtual ~QuestAudioData();
+	virtual uint64_t getLocalTimestamp() const = 0;//timestamp when received the data
+	virtual uint64_t getDeviceTimestamp() const = 0;//timestamp recorded on the device before transfer
+	virtual int getNbChannels() const = 0;//number of channels
+	virtual uint32_t getSampleRate() const = 0;//sample rate
+	virtual const unsigned char *getData() const = 0;//raw audio data
+	virtual int getDataLength() const = 0;//length (in bytes) of the audio data
+};
+
 class LQMR_EXPORTS QuestVideoMngr
 {
 public:
@@ -79,8 +91,10 @@ public:
 	virtual uint32_t getHeight() = 0;//get img height
 	
 	#ifdef LIBQUESTMR_USE_OPENCV
-    virtual cv::Mat getMostRecentImg(uint64_t *timestamp = NULL) = 0;
+    virtual cv::Mat getMostRecentImg(uint64_t *timestamp = NULL, int *frameId = NULL) = 0;
 	#endif
+	virtual int getMostRecentAudio(QuestAudioData*** listAudioData) = 0;
+	
 };
 
 class LQMR_EXPORTS QuestVideoMngrThreadData
@@ -97,7 +111,7 @@ public:
     virtual void threadFunc() = 0;
     
 #ifdef LIBQUESTMR_USE_OPENCV
-    virtual cv::Mat getMostRecentImg(uint64_t *timestamp) = 0;
+    virtual cv::Mat getMostRecentImg(uint64_t *timestamp, int *frameId = NULL) = 0;
 #endif
 };
 

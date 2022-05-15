@@ -18,6 +18,7 @@
 #include "frame.h"
 #include <string.h>
 #include "libQuestMR/QuestVideoMngr.h"
+#include <BufferedSocket/DataPacket.h>
 
 namespace libQuestMR
 {
@@ -33,6 +34,16 @@ FrameCollection::FrameCollection()
 FrameCollection::~FrameCollection()
 {
 	Reset();
+}
+
+FrameHeader FrameCollection::readFrameHeader(unsigned char *data) const
+{
+	FrameHeader frameHeader;
+	frameHeader.Magic                         = convertBytesToUInt32(data, false);
+	frameHeader.TotalDataLengthExcludingMagic = convertBytesToUInt32(data + 4, false);
+	frameHeader.PayloadType                   = convertBytesToUInt32(data + 8, false);
+	frameHeader.PayloadLength                 = convertBytesToUInt32(data + 12, false);
+	return frameHeader;
 }
 
 void FrameCollection::setRecording(const char *folder, const char *filenameWithoutExt)
@@ -95,37 +106,37 @@ void FrameCollection::AddData(const uint8_t* data, uint32_t len)
 
 	while (m_scratchPad.size() >= sizeof(FrameHeader))
 	{
-		const FrameHeader* frameHeader = (const FrameHeader*)m_scratchPad.data();
-		if (frameHeader->Magic != Magic)
+		FrameHeader frameHeader = readFrameHeader(m_scratchPad.data());
+		if (frameHeader.Magic != Magic)
 		{
 			OM_LOG(LOG_ERROR, "Frame magic mismatch: expected 0x%08x get 0x%08x", Magic, frameHeader->Magic);
 			m_hasError = true;
 			return;
 		}
-		uint32_t frameLengthExcludingMagic = frameHeader->TotalDataLengthExcludingMagic;
+		uint32_t frameLengthExcludingMagic = frameHeader.TotalDataLengthExcludingMagic;
 		if (m_scratchPad.size() >= sizeof(uint32_t) + frameLengthExcludingMagic)
 		{
-			if (frameHeader->PayloadLength != frameHeader->TotalDataLengthExcludingMagic + sizeof(uint32_t) - sizeof(FrameHeader))
+			if (frameHeader.PayloadLength != frameHeader.TotalDataLengthExcludingMagic + sizeof(uint32_t) - sizeof(FrameHeader))
 			{
-				OM_LOG(LOG_ERROR, "Frame length mismatch: length %u, payload length %u", frameHeader->TotalDataLengthExcludingMagic, frameHeader->PayloadLength);
+				OM_LOG(LOG_ERROR, "Frame length mismatch: length %u, payload length %u", frameHeader.TotalDataLengthExcludingMagic, frameHeader.PayloadLength);
 				m_hasError = true;
 				return;
 			}
 
 			std::shared_ptr<Frame> frame = std::make_shared<Frame>();
-			frame->m_type = (Frame::PayloadType)frameHeader->PayloadType;
-			//frame->m_secondsSinceEpoch = frameHeader->SecondsSinceEpoch;
+			frame->m_type = (Frame::PayloadType)frameHeader.PayloadType;
+			//frame->m_secondsSinceEpoch = frameHeader.SecondsSinceEpoch;
 			auto first = m_scratchPad.begin() + sizeof(FrameHeader);
-			auto last = first + frameHeader->PayloadLength;
+			auto last = first + frameHeader.PayloadLength;
 
-			if (m_scratchPad.size() >= sizeof(uint32_t) + frameHeader->TotalDataLengthExcludingMagic + sizeof(uint32_t))
+			if (m_scratchPad.size() >= sizeof(uint32_t) + frameHeader.TotalDataLengthExcludingMagic + sizeof(uint32_t))
 			{
-				uint32_t* magic = (uint32_t*)&m_scratchPad.at(sizeof(uint32_t) + frameHeader->TotalDataLengthExcludingMagic);
+				uint32_t* magic = (uint32_t*)&m_scratchPad.at(sizeof(uint32_t) + frameHeader.TotalDataLengthExcludingMagic);
 				if (*magic != Magic)
 				{
 					OM_LOG(LOG_ERROR, "Will have magic number error in next frame: current frame type %d, frame length %d, scratchPad size %d",
 						frame->m_type,
-						sizeof(uint32_t) + frameHeader->TotalDataLengthExcludingMagic,
+						sizeof(uint32_t) + frameHeader.TotalDataLengthExcludingMagic,
 						m_scratchPad.size());
 				}
 			}
@@ -136,7 +147,7 @@ void FrameCollection::AddData(const uint8_t* data, uint32_t len)
             frame->localTimestamp = getTimestampMs();
 
 			if(timestampFile != NULL)
-                fprintf(timestampFile, "%llu\n", static_cast<unsigned long long>(frame->localTimestamp));
+                fprintf(timestampFile, "%llu,%u,%u\n", static_cast<unsigned long long>(frame->localTimestamp), frameHeader.PayloadType,frameHeader.PayloadLength);
 
 			if (!m_firstFrameTimeSet)
 			{
