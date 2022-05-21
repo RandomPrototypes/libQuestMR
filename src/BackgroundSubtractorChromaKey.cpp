@@ -10,13 +10,15 @@ class BackgroundSubtractorChromaKey : public BackgroundSubtractorBase
 {
 public:
     BackgroundSubtractorChromaKey(int _hardThresh, int _softThresh, bool _useSingleColor, int _backgroundCr, int _backgroundCb)
-        :hardThresh(_hardThresh), softThresh(_softThresh), useSingleColor(_useSingleColor), backgroundCr(_backgroundCr), backgroundCb(_backgroundCb)
+        :hardThresh(_hardThresh), softThresh(_softThresh), useSingleColor(_useSingleColor)
     {
         addParameter("hardThresh", &hardThresh);
         addParameter("softThresh", &softThresh);
         addParameter("useSingleColor", &useSingleColor);
-        addParameter("backgroundCr", &backgroundCr);
-        addParameter("backgroundCb", &backgroundCb);
+        addParameterColor("backgroundColor", &backgroundColor);
+        setParameterValYCrCb("backgroundColor", 128, _backgroundCr, _backgroundCb);
+        //addParameter("backgroundCr", &backgroundCr);
+        //addParameter("backgroundCb", &backgroundCb);
     }
 
     virtual ~BackgroundSubtractorChromaKey()
@@ -25,6 +27,10 @@ public:
 
     virtual void apply(cv::InputArray image, cv::OutputArray _fgmask, double learningRate=-1)
     {
+        unsigned char y, cr, cb;
+        getParameterValAsYCrCb("backgroundColor", &y, &cr, &cb);
+        int backgroundCr = cr;
+        int backgroundCb = cb;
         if(softThresh <= hardThresh)
             softThresh = hardThresh + 1;
         cv::Mat frameYCrCb;
@@ -74,7 +80,8 @@ public:
 
     int hardThresh, softThresh;
     bool useSingleColor;
-    int backgroundCr, backgroundCb;
+    unsigned int backgroundColor;
+    //int backgroundCr, backgroundCb;
     cv::Mat backgroundYCrCb;
 };
 

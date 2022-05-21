@@ -33,6 +33,41 @@ BackgroundSubtractorParamType BackgroundSubtractorBase::getParameterType(int id)
 {
     return listParams[id].type;
 }
+
+std::string toHexString(unsigned int val, int length = -1)
+{
+    std::string result;
+    while(val > 0) {
+        unsigned char tmp = val & 0xF;
+        if(tmp >= 10)
+            result.insert(0, 1, 'A'+tmp-10);
+        else result.insert(0, 1, '0'+tmp);
+        val = (val >> 4);
+    }
+    while(result.size() < length)
+        result.insert(0, 1, '0');
+    return result;
+}
+
+unsigned int hexToUInt(const char *val, int length = -1)
+{
+    unsigned int result = 0;
+    int i = 0;
+    while((length < 0 || i < length) && val[i] != '\0')
+    {
+        if(val[i] >= 'A' && val[i] <= 'F') {
+            result = (result<<4) + (val[i]-'A'+10);
+        } else if(val[i] >= 'a' && val[i] <= 'f') {
+            result = (result<<4) + (val[i]-'a'+10);
+        } else if(val[i] >= '0' && val[i] <= '9') {
+            result = (result<<4) + (val[i]-'0');
+        } else {
+            break;
+        }
+    }
+    return result;
+}
+
 PortableString BackgroundSubtractorBase::getParameterVal(int id) const
 {
     switch(listParams[id].type)
@@ -45,6 +80,10 @@ PortableString BackgroundSubtractorBase::getParameterVal(int id) const
             return toPortableString(std::to_string(*(double*)listParams[id].param));
         case BackgroundSubtractorParamType::ParamTypeString:
             return *(PortableString*)listParams[id].param;
+        case BackgroundSubtractorParamType::ParamTypeColor:
+            unsigned char r,g,b;
+            getParameterValAsRGB(id, &r, &g, &b);
+            return toPortableString("#"+toHexString(r,2)+toHexString(g,2)+toHexString(b,2));
     }
     return "";
 }
@@ -96,6 +135,32 @@ double BackgroundSubtractorBase::getParameterValAsDouble(int id) const
             return 0;
     }
 }
+bool BackgroundSubtractorBase::getParameterValAsRGB(int id, unsigned char *r, unsigned char *g, unsigned char *b) const
+{
+    switch(listParams[id].type)
+    {
+        case BackgroundSubtractorParamType::ParamTypeColor:
+            *b = (*(unsigned int*)listParams[id].param) & 0xFF;
+            *g = ((*(unsigned int*)listParams[id].param)>>8) & 0xFF;
+            *r = ((*(unsigned int*)listParams[id].param)>>16) & 0xFF;
+            return true;
+        default:
+            printf("BackgroundSubtractor::getParameterValAsRGB wrong type\n");
+            return false;
+    }
+}
+
+bool BackgroundSubtractorBase::getParameterValAsYCrCb(int id, unsigned char *y, unsigned char *cr, unsigned char *cb) const
+{
+    unsigned char r,g,b;
+    bool ret = getParameterValAsRGB(id, &r, &g, &b);
+    float delta = 128;
+    float y_float = 0.299 * r + 0.587 * g + 0.114 * b;
+    *y = cv::saturate_cast<unsigned char>(cvRound(y_float));
+    *cr = cv::saturate_cast<unsigned char>(cvRound((r-y_float) * 0.713 + delta));
+    *cb = cv::saturate_cast<unsigned char>(cvRound((b-y_float) * 0.564 + delta));
+    return ret;
+}
 void BackgroundSubtractorBase::setParameterVal(int id, const char *val)
 {
     switch(listParams[id].type)
@@ -117,6 +182,12 @@ void BackgroundSubtractorBase::setParameterVal(int id, const char *val)
             break;
         case BackgroundSubtractorParamType::ParamTypeString:
             (*(PortableString*)listParams[id].param) = val;
+            break;
+        case BackgroundSubtractorParamType::ParamTypeColor:
+            if(val[0] == '#') {
+                unsigned int rgb = hexToUInt(val+1, 6);
+                setParameterValRGB(id, (rgb>>16) & 0xFF, (rgb>>8) & 0xFF, rgb & 0xFF);
+            }
             break;
     }
 }
@@ -175,6 +246,24 @@ void BackgroundSubtractorBase::setParameterVal(int id, double val)
     }
 }
 
+void BackgroundSubtractorBase::setParameterValRGB(int id, unsigned char r, unsigned char g, unsigned char b)
+{
+    switch(listParams[id].type)
+    {
+        case BackgroundSubtractorParamType::ParamTypeColor:
+            (*(unsigned int*)listParams[id].param) = (r<<16 | g<<8 | b);
+            break;
+    }
+}
+void BackgroundSubtractorBase::setParameterValYCrCb(int id, unsigned char y, unsigned char cr, unsigned char cb)
+{
+    int delta = 128;
+    unsigned char r = cv::saturate_cast<unsigned char>(cvRound(y + 1.403 * (cr -delta)));
+    unsigned char g = cv::saturate_cast<unsigned char>(cvRound(y - 0.714*(cr-delta) - 0.344*(cb-delta)));
+    unsigned char b = cv::saturate_cast<unsigned char>(cvRound(y + 1.773*(cb-delta)));
+    setParameterValRGB(id, r, g, b);
+}
+
 
 PortableString BackgroundSubtractorBase::getParameterVal(const char *paramName) const
 {
@@ -192,6 +281,14 @@ double BackgroundSubtractorBase::getParameterValAsDouble(const char *paramName) 
 {
     return getParameterValAsDouble(getParameterId(paramName));
 }
+bool BackgroundSubtractorBase::getParameterValAsRGB(const char *paramName, unsigned char *r, unsigned char *g, unsigned char *b) const
+{
+    return getParameterValAsRGB(getParameterId(paramName), r, g, b);
+}
+bool BackgroundSubtractorBase::getParameterValAsYCrCb(const char *paramName, unsigned char *y, unsigned char *cr, unsigned char *cb) const
+{
+    return getParameterValAsYCrCb(getParameterId(paramName), y, cr, cb);
+}
 void BackgroundSubtractorBase::setParameterVal(const char *paramName, const char *val)
 {
     setParameterVal(getParameterId(paramName), val);
@@ -207,6 +304,14 @@ void BackgroundSubtractorBase::setParameterVal(const char *paramName, int val)
 void BackgroundSubtractorBase::setParameterVal(const char *paramName, double val)
 {
     setParameterVal(getParameterId(paramName), val);
+}
+void BackgroundSubtractorBase::setParameterValRGB(const char *paramName, unsigned char r, unsigned char g, unsigned char b)
+{
+    setParameterValRGB(getParameterId(paramName), r, g, b);
+}
+void BackgroundSubtractorBase::setParameterValYCrCb(const char *paramName, unsigned char y, unsigned char cr, unsigned char cb)
+{
+    setParameterValYCrCb(getParameterId(paramName), y, cr, cb);
 }
 
 
@@ -226,6 +331,10 @@ void BackgroundSubtractorBase::addParameter(const char *name, double *val)
 void BackgroundSubtractorBase::addParameter(const char *name, PortableString *val)
 {
     listParams.push_back(BackgroundSubtractorParam(name, BackgroundSubtractorParamType::ParamTypeString, val));
+}
+void BackgroundSubtractorBase::addParameterColor(const char *name, unsigned int *val)
+{
+    listParams.push_back(BackgroundSubtractorParam(name, BackgroundSubtractorParamType::ParamTypeColor, val));
 }
 
 
