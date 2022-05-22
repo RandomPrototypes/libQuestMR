@@ -214,7 +214,7 @@ void processRawCaptureAudio(const char *recordName)
 			for(int i = 0; i < nbAudioFrames; i++) {
 				int size = listAudioData[i]->getDataLength() / sizeof(float);
 				const float *data = (const float*)listAudioData[i]->getData();
-				printf("sampleRate %d, timestamp %lu\n", listAudioData[i]->getSampleRate(), listAudioData[0]->getDeviceTimestamp());
+				printf("sampleRate %d, timestamp %s\n", listAudioData[i]->getSampleRate(), std::to_string(listAudioData[0]->getDeviceTimestamp()).c_str());
 				int size2 = size;// * recordSampleRate / listAudioData[i]->getSampleRate();
 				for(int j = 0; j < size2; j++)
 					audioData.push_back(data[j*size/size2]);
