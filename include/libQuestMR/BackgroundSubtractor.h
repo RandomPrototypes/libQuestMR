@@ -21,6 +21,7 @@ class LQMR_EXPORTS BackgroundSubtractor
 {
 public:
 	virtual ~BackgroundSubtractor();
+	virtual void restart() = 0;
 	virtual void apply(cv::InputArray image, cv::OutputArray fgmask, double learningRate=-1) = 0;
 	
 	virtual int getParameterCount() const = 0;
@@ -73,6 +74,7 @@ class BackgroundSubtractorBase : public BackgroundSubtractor
 {
 public:
     virtual ~BackgroundSubtractorBase();
+    virtual void restart();
 	virtual void apply(cv::InputArray image, cv::OutputArray fgmask, double learningRate=-1) = 0;
 	virtual int getParameterCount() const;
     virtual int getParameterId(const char *name) const;

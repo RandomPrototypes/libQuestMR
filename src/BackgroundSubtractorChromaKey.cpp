@@ -25,6 +25,11 @@ public:
     {
     }
 
+    virtual void restart()
+    {
+        backgroundYCrCb = cv::Mat();
+    }
+
     virtual void apply(cv::InputArray image, cv::OutputArray _fgmask, double learningRate=-1)
     {
         unsigned char y, cr, cb;

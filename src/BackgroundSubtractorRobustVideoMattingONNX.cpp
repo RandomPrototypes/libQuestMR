@@ -55,13 +55,6 @@ public:
         io_binding->BindOutput("r2o", memoryInfoCuda);
         io_binding->BindOutput("r3o", memoryInfoCuda);
         io_binding->BindOutput("r4o", memoryInfoCuda);
-        
-        io_binding->BindInput("r1i", r1i);
-        io_binding->BindInput("r2i", r1i);
-        io_binding->BindInput("r3i", r1i);
-        io_binding->BindInput("r4i", r1i);
-        io_binding->BindInput("downsample_ratio", downsample_ratio_tensor);
-
     }
 
     virtual ~BackgroundSubtractorRobustVideoMattingONNX()
@@ -70,10 +63,21 @@ public:
         delete session;
     }
 
+    virtual void restart()
+    {
+        firstFrame = true;
+    }
+
     virtual void apply(cv::InputArray image, cv::OutputArray _fgmask, double learningRate=-1)
     {
         const cv::Mat &img = image.getMat();
         if(firstFrame) {
+            io_binding->BindInput("r1i", r1i);
+            io_binding->BindInput("r2i", r1i);
+            io_binding->BindInput("r3i", r1i);
+            io_binding->BindInput("r4i", r1i);
+            io_binding->BindInput("downsample_ratio", downsample_ratio_tensor);
+
             src_data = std::vector<float>(img.cols * img.rows * 3);
             src_dims[0] = 1; src_dims[1] = 3; src_dims[2] = img.rows; src_dims[3] = img.cols;
             src_tensor = Ort::Value::CreateTensor<float>(memoryInfo, src_data.data(), src_data.size(), src_dims, 4);

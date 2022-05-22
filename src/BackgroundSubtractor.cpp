@@ -13,6 +13,10 @@ BackgroundSubtractorBase::~BackgroundSubtractorBase()
 {
 }
 
+void BackgroundSubtractorBase::restart()
+{
+}
+
 int BackgroundSubtractorBase::getParameterCount() const
 {
     return listParams.size();
@@ -84,6 +88,8 @@ PortableString BackgroundSubtractorBase::getParameterVal(int id) const
             unsigned char r,g,b;
             getParameterValAsRGB(id, &r, &g, &b);
             return toPortableString("#"+toHexString(r,2)+toHexString(g,2)+toHexString(b,2));
+        default:
+            return toPortableString("(unknown)");
     }
     return "";
 }
@@ -189,6 +195,9 @@ void BackgroundSubtractorBase::setParameterVal(int id, const char *val)
                 setParameterValRGB(id, (rgb>>16) & 0xFF, (rgb>>8) & 0xFF, rgb & 0xFF);
             }
             break;
+        default:
+            printf("BackgroundSubtractorBase::setParameterVal wrong type\n");
+            break;
     }
 }
 void BackgroundSubtractorBase::setParameterVal(int id, bool val)
@@ -206,6 +215,9 @@ void BackgroundSubtractorBase::setParameterVal(int id, bool val)
             break;
         case BackgroundSubtractorParamType::ParamTypeString:
             (*(PortableString*)listParams[id].param) = toPortableString(val ? "true" : "false");
+            break;
+        default:
+            printf("BackgroundSubtractorBase::setParameterVal wrong type\n");
             break;
     }
 }
@@ -225,6 +237,9 @@ void BackgroundSubtractorBase::setParameterVal(int id, int val)
         case BackgroundSubtractorParamType::ParamTypeString:
             (*(PortableString*)listParams[id].param) = toPortableString(std::to_string(val));
             break;
+        default:
+            printf("BackgroundSubtractorBase::setParameterVal wrong type\n");
+            break;
     }
 }
 void BackgroundSubtractorBase::setParameterVal(int id, double val)
@@ -243,6 +258,9 @@ void BackgroundSubtractorBase::setParameterVal(int id, double val)
         case BackgroundSubtractorParamType::ParamTypeString:
             (*(PortableString*)listParams[id].param) = toPortableString(std::to_string(val));
             break;
+        default:
+            printf("BackgroundSubtractorBase::setParameterVal wrong type\n");
+            break;
     }
 }
 
@@ -252,6 +270,9 @@ void BackgroundSubtractorBase::setParameterValRGB(int id, unsigned char r, unsig
     {
         case BackgroundSubtractorParamType::ParamTypeColor:
             (*(unsigned int*)listParams[id].param) = (r<<16 | g<<8 | b);
+            break;
+        default:
+            printf("BackgroundSubtractorBase::setParameterValRGB wrong type\n");
             break;
     }
 }
