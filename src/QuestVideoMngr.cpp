@@ -115,7 +115,7 @@ class QuestVideoMngrImpl : public QuestVideoMngr
 {
 public:
     QuestVideoMngrImpl();
-    ~QuestVideoMngrImpl();
+    virtual ~QuestVideoMngrImpl();
     virtual void StartDecoder();
     virtual void StopDecoder();
 

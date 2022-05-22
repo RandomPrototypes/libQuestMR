@@ -73,7 +73,7 @@ public:
 class LQMR_EXPORTS QuestVideoMngr
 {
 public:
-    ~QuestVideoMngr();
+    virtual ~QuestVideoMngr();
     virtual void StartDecoder() = 0;
     virtual void StopDecoder() = 0;
 
