@@ -44,8 +44,8 @@ std::string toHexString(unsigned int val, int length = -1)
     while(val > 0) {
         unsigned char tmp = val & 0xF;
         if(tmp >= 10)
-            result.insert(0, 1, 'A'+tmp-10);
-        else result.insert(0, 1, '0'+tmp);
+            result.insert(0, 1, (char)('A'+tmp-10));
+        else result.insert(0, 1, (char)('0'+tmp));
         val = (val >> 4);
     }
     while(result.size() < length)
