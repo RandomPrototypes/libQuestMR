@@ -14,7 +14,6 @@ public:
     {
         addParameter("hardThresh", &hardThresh);
         addParameter("softThresh", &softThresh);
-        addParameter("useSingleColor", &useSingleColor);
         addParameterColor("backgroundColor", &backgroundColor);
         setParameterValYCrCb("backgroundColor", 128, _backgroundCr, _backgroundCb);
         //addParameter("backgroundCr", &backgroundCr);
@@ -38,6 +37,8 @@ public:
         int backgroundCb = cb;
         if(softThresh <= hardThresh)
             softThresh = hardThresh + 1;
+        int softThresh2 = softThresh*softThresh;
+        int hardThresh2 = hardThresh*hardThresh;
         cv::Mat frameYCrCb;
 		cv::cvtColor(image, frameYCrCb, cv::COLOR_BGR2YCrCb);
     	if(backgroundYCrCb.empty())
@@ -50,12 +51,14 @@ public:
                 unsigned char *dst = mask.ptr<unsigned char>(i);
                 unsigned char *src = frameYCrCb.ptr<unsigned char>(i);
                 for(int j = 0; j < mask.cols; j++) {
-                    int diff = abs(src[1] - backgroundCr) + abs(src[2] - backgroundCb);
-                    if(diff < hardThresh)
+                    int diff_cr = (src[1] - backgroundCr);
+                    int diff_cb = (src[2] - backgroundCb);
+                    int diff2 = diff_cr*diff_cr + diff_cb*diff_cb;
+                    if(diff2 < hardThresh2)
                         *dst = 0;
-                    else if(diff > softThresh)
+                    else if(diff2 > softThresh2)
                         *dst = 255;
-                    else *dst = (diff-hardThresh) * 255 / (softThresh-hardThresh);
+                    else *dst = (sqrt(diff2)-hardThresh) * 255 / (softThresh-hardThresh);
 
                     dst++;
                     src += 3;
@@ -68,12 +71,14 @@ public:
                 unsigned char *src = frameYCrCb.ptr<unsigned char>(i);
                 unsigned char *back = backgroundYCrCb.ptr<unsigned char>(i);
                 for(int j = 0; j < mask.cols; j++) {
-                    int diff = abs(src[1] - back[1]) + abs(src[2] - back[2]);
-                    if(diff < hardThresh)
+                    int diff_cr = (src[1] - back[1]);
+                    int diff_cb = (src[2] - back[2]);
+                    int diff2 = diff_cr*diff_cr + diff_cb*diff_cb;
+                    if(diff2 < hardThresh2)
                         *dst = 0;
-                    else if(diff > softThresh)
+                    else if(diff2 > softThresh2)
                         *dst = 255;
-                    else *dst = (diff-hardThresh) * 255 / (softThresh-hardThresh);
+                    else *dst = (sqrt(diff2)-hardThresh) * 255 / (softThresh-hardThresh);
 
                     dst++;
                     src += 3;
