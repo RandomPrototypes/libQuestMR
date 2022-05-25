@@ -122,7 +122,7 @@ void processRawCapture(const char *recordName, const char *outputVideo)
 		videoSrc = createQuestVideoSourceFile();
 		videoSrc->open((std::string(recordName)+"_quest.questMRVideo").c_str());
 		mngr->attachSource(videoSrc);
-        mngr->setRecordedTimestampSource((std::string(recordName)+"_questTimestamp.txt").c_str());
+        mngr->setRecordedTimestampFile((std::string(recordName)+"_questTimestamp.txt").c_str());
 	} else {
 		cap_quest.open((std::string(recordName)+"_quest.mp4").c_str());
 	}

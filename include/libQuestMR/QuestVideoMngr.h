@@ -78,7 +78,8 @@ public:
     virtual void StopDecoder() = 0;
 
 	virtual void setRecording(const char *folder, const char *filenameWithoutExt) = 0;//set folder and filename (without extension) for recording 
-	virtual void setRecordedTimestampSource(const char *filename) = 0;//set timestamp file (for playback)
+	virtual void setRecordedTimestampFile(const char *filename, bool use_rectifyTimestamps = true) = 0;//set timestamp file (for playback)
+	virtual void setRecordedTimestamp(const std::vector<uint64_t>& listTimestamp) = 0;//set timestamps (for playback)
 	virtual void setVideoDecoding(bool videoDecoding) = 0;//to disable video decoding (useful if we want to record without preview)
 
     virtual void ReceiveData() = 0;
@@ -126,6 +127,9 @@ extern "C"
 	LQMR_EXPORTS void deleteQuestVideoMngrRawPtr(QuestVideoMngr *videoMngr);
 	LQMR_EXPORTS QuestVideoMngrThreadData *createQuestVideoMngrThreadDataRawPtr(std::shared_ptr<QuestVideoMngr> mngr);
 	LQMR_EXPORTS void deleteQuestVideoMngrThreadDataRawPtr(QuestVideoMngrThreadData *threadData);
+	
+	LQMR_EXPORTS bool loadQuestRecordedTimestamps(const char *filename, std::vector<uint64_t> *listTimestamp, std::vector<uint32_t> *listType = NULL, std::vector<uint32_t> *listSize = NULL);
+
 }
 
 inline std::shared_ptr<QuestVideoSourceBufferedSocket> createQuestVideoSourceBufferedSocket()

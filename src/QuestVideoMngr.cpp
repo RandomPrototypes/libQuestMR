@@ -15,6 +15,7 @@
  */
 
 #include <libQuestMR/QuestVideoMngr.h>
+#include <libQuestMR/QuestVideoTimestampRectifier.h>
 #include <fcntl.h>
 #include <thread>
 #include <fstream>
@@ -120,7 +121,8 @@ public:
     virtual void StopDecoder();
 
 	virtual void setRecording(const char *folder, const char *filenameWithoutExt);//set folder and filename (without extension) for recording 
-	virtual void setRecordedTimestampSource(const char *filename);//set timestamp file (for playback)
+	virtual void setRecordedTimestampFile(const char *filename, bool use_rectifyTimestamps = true);//set timestamp file (for playback)
+    virtual void setRecordedTimestamp(const std::vector<uint64_t>& listTimestamp);//set timestamps (for playback)
 	virtual void setVideoDecoding(bool videoDecoding);//to disable video decoding (useful if we want to record without preview)
 
     virtual void ReceiveData();
@@ -171,7 +173,8 @@ private:
     uint64_t mostRecentTimestamp;
 
 	std::shared_ptr<QuestVideoSource> videoSource = NULL;
-	std::ifstream recordedTimestampFile;
+    std::vector<uint64_t> recordedTimestamp;
+    int recordedTimestampId;
 };
 
 QuestVideoMngr::~QuestVideoMngr()
@@ -315,9 +318,19 @@ void QuestVideoMngrImpl::ReceiveData()
     }
 }
 
-void QuestVideoMngrImpl::setRecordedTimestampSource(const char *filename)
+void QuestVideoMngrImpl::setRecordedTimestampFile(const char *filename, bool use_rectifyTimestamps)
 {
-    recordedTimestampFile.open(filename);
+    std::vector<uint32_t> listType;
+    loadQuestRecordedTimestamps(filename, &recordedTimestamp, &listType);
+    if(use_rectifyTimestamps)
+        recordedTimestamp = rectifyTimestamps(recordedTimestamp, listType);
+    recordedTimestampId = 0;
+}
+
+void QuestVideoMngrImpl::setRecordedTimestamp(const std::vector<uint64_t>& listTimestamp)
+{
+    recordedTimestamp = listTimestamp;
+    recordedTimestampId = 0;
 }
 
 void QuestVideoMngrImpl::setVideoDecoding(bool videoDecoding)
@@ -343,10 +356,9 @@ void QuestVideoMngrImpl::VideoTickImpl(bool skipOldFrames)
             //	break;
 
             auto frame = m_frameCollection.PopFrame();
-            if(recordedTimestampFile.good()){
-                std::string line;
-                if(std::getline(recordedTimestampFile, line))
-                    std::istringstream(line) >> frame->localTimestamp;
+            if(recordedTimestamp.size() > 0 && recordedTimestampId < recordedTimestamp.size()) {
+                frame->localTimestamp = recordedTimestamp[recordedTimestampId];
+                recordedTimestampId++;
             }
 
             //auto current_time = std::chrono::system_clock::now();
@@ -828,6 +840,44 @@ extern "C"
 	{
 		delete threadData;
 	}
+
+
+    bool loadQuestRecordedTimestamps(const char *filename, std::vector<uint64_t> *listTimestamp, std::vector<uint32_t> *listType, std::vector<uint32_t> *listSize)
+    {
+        if(listTimestamp != NULL)
+            listTimestamp->clear();
+        if(listType != NULL)
+            listType->clear();
+        if(listSize != NULL)
+            listSize->clear();
+        
+        std::ifstream input(filename);
+        if(!input.good())
+            return false;
+        std::string line;
+        while(std::getline(input, line))
+        {
+            uint64_t timestamp;
+            uint32_t type;
+            uint32_t size;
+            std::string timestampStr, typeStr, sizeStr;
+            std::istringstream str(line);
+            if(!std::getline(str, timestampStr, ',') || !std::getline(str, typeStr, ',') || !std::getline(str, sizeStr, ','))
+                break;
+
+            std::istringstream(timestampStr) >> timestamp;
+            std::istringstream(typeStr) >> type;
+            std::istringstream(sizeStr) >> size;
+            
+            if(listTimestamp != NULL)
+                listTimestamp->push_back(timestamp);
+            if(listType != NULL)
+                listType->push_back(type);
+            if(listSize != NULL)
+                listSize->push_back(size);
+        }
+        return true;
+    }
 }
 
 #ifdef LIBQUESTMR_USE_OPENCV

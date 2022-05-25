@@ -78,6 +78,7 @@ SET (LIB_INCLUDE
              src/frame.h
              src/log.h
              include/libQuestMR/QuestVideoMngr.h
+             include/libQuestMR/QuestVideoTimestampRectifier.h
              include/libQuestMR/QuestCalibData.h
              include/libQuestMR/QuestFrameData.h
              include/libQuestMR/QuestCommunicator.h
@@ -89,6 +90,7 @@ SET (LIB_INCLUDE
 SET (LIB_SRC
             src/frame.cpp
             src/QuestVideoMngr.cpp
+            src/QuestVideoTimestampRectifier.cpp
             src/QuestCalibData.cpp
             src/QuestFrameData.cpp
             src/QuestCommunicator.cpp

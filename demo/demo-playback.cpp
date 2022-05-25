@@ -10,7 +10,7 @@ void playbackCapturedData(std::string outputFolder, std::string name)
     std::shared_ptr<QuestVideoSourceFile> videoSrc = createQuestVideoSourceFile();
     videoSrc->open((outputFolder+"/"+name+".questMRVideo").c_str());
     mngr->attachSource(videoSrc);
-    mngr->setRecordedTimestampSource((outputFolder+"/"+name+"Timestamp.txt").c_str());
+    mngr->setRecordedTimestampFile((outputFolder+"/"+name+"Timestamp.txt").c_str());
     while(true)
     {
         if(!videoSrc->isValid())
