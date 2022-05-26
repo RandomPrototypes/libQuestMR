@@ -89,7 +89,7 @@ uint64_t absdiff(uint64_t a, uint64_t b)
 
 void processRawCapture(const char *recordName, const char *outputVideo)
 {
-	bool recordDirectlyFromQuest = test_file_exists((std::string(recordName)+"_quest.questMRVideo").c_str());
+	bool recordDirectlyFromQuest = test_file_exists((std::string(recordName)+".questMRVideo").c_str());
 	int mask_subsample_factor = 1;
 	int bitrate = 8000000;
 
@@ -120,13 +120,13 @@ void processRawCapture(const char *recordName, const char *outputVideo)
 	if(recordDirectlyFromQuest) {
 		mngr = createQuestVideoMngr();
 		videoSrc = createQuestVideoSourceFile();
-		videoSrc->open((std::string(recordName)+"_quest.questMRVideo").c_str());
+		videoSrc->open((std::string(recordName)+".questMRVideo").c_str());
 		mngr->attachSource(videoSrc);
         mngr->setRecordedTimestampFile((std::string(recordName)+"_questTimestamp.txt").c_str());
 	} else {
 		cap_quest.open((std::string(recordName)+"_quest.mp4").c_str());
 	}
-	std::ifstream timestampFile((std::string(recordName)+"_timestamp.txt").c_str());
+	std::ifstream timestampFile((std::string(recordName)+"_camTimestamp.txt").c_str());
 	cv::VideoCapture cap_cam((std::string(recordName)+"_cam.mp4").c_str());
 
 	std::vector<cv::Point> border;

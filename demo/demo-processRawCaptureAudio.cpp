@@ -21,10 +21,10 @@ void processRawCaptureAudio(const char *recordName)
 	std::shared_ptr<QuestVideoSourceFile> videoSrc;
 	mngr = createQuestVideoMngr();
 	videoSrc = createQuestVideoSourceFile();
-	videoSrc->open((std::string(recordName)+"_quest.questMRVideo").c_str());
+	videoSrc->open((std::string(recordName)+".questMRVideo").c_str());
 	mngr->attachSource(videoSrc);
-	rectifyTimestamps((std::string(recordName)+"_questTimestamp.txt").c_str(), (std::string(recordName)+"_questTimestamp2.txt").c_str());
-    mngr->setRecordedTimestampFile((std::string(recordName)+"_questTimestamp2.txt").c_str());
+	//rectifyTimestamps((std::string(recordName)+"_questTimestamp.txt").c_str(), (std::string(recordName)+"_questTimestamp2.txt").c_str());
+    mngr->setRecordedTimestampFile((std::string(recordName)+"_questTimestamp.txt").c_str(), true);
 	//return ;
 
 	std::shared_ptr<VideoEncoder> videoEncoder = createVideoEncoder();

@@ -32,7 +32,7 @@ void captureFromQuest(const char *ipAddr, const char *recordName)
     }
     mngr->attachSource(videoSrc);
 	if(recordDirectlyFromQuest)
-		mngr->setRecording(".", (std::string(recordName)+"_quest").c_str());
+		mngr->setRecording(".", recordName);
 
 	std::shared_ptr<QuestVideoMngrThreadData> questVideoMngrThreadData = createQuestVideoMngrThreadData(mngr);
 	std::thread questVideoMngrThread(QuestVideoMngrThreadFunc, questVideoMngrThreadData.get());
@@ -71,7 +71,7 @@ void captureFromQuest(const char *ipAddr, const char *recordName)
 				if(!recordDirectlyFromQuest)
 					videoEncoder_quest->open((std::string(recordName)+"_quest.mp4").c_str(), questImg.rows, questImg.cols, 30, "", bitrate);
 				videoEncoder_cam->open((std::string(recordName)+"_cam.mp4").c_str(), srcFormat.height, srcFormat.width, 30, "", bitrate);
-				timestampFile = fopen((std::string(recordName)+"_timestamp.txt").c_str(), "w");
+				timestampFile = fopen((std::string(recordName)+"_camTimestamp.txt").c_str(), "w");
 				init = true;
 			} else {
 				if(!recordDirectlyFromQuest)

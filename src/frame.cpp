@@ -63,7 +63,7 @@ void FrameCollection::setRecording(const char *folder, const char *filenameWitho
 	baseFilename += "/";
 	baseFilename += filenameWithoutExt;
 	recordingFile = fopen((baseFilename+".questMRVideo").c_str(), "wb");
-	timestampFile = fopen((baseFilename+"Timestamp.txt").c_str(), "wb");
+	timestampFile = fopen((baseFilename+"_questTimestamp.txt").c_str(), "wb");
 }
 
 void FrameCollection::Reset()
