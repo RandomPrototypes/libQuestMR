@@ -16,6 +16,8 @@ int thresholdedSquaredDiff(int a, int b, int thresh)
 
 std::vector<uint64_t> rectifyVideoTimestamps(const std::vector<uint64_t>& listTimestamp)
 {
+	if(listTimestamp.size() == 0)
+		return listTimestamp;
 	std::vector<int> list(listTimestamp.size());
 	for(size_t i = 0; i < list.size(); i++)
 		list[i] = static_cast<int>(listTimestamp[i] - listTimestamp[0]);
@@ -75,6 +77,8 @@ std::vector<uint64_t> rectifyTimestamps(const std::vector<uint64_t>& listTimesta
 			listVideoDataId.push_back(i);
 		}
 	}
+	if(listVideoDataTimestamp.size() == 0)
+		return listTimestamp;
     std::vector<uint64_t> listVideoDataTimestamp2 = rectifyVideoTimestamps(listVideoDataTimestamp);
 
     std::vector<uint64_t> listTimestamp2 = listTimestamp;

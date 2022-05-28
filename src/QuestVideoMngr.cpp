@@ -296,11 +296,13 @@ void QuestVideoMngrImpl::ReceiveData()
                 {
                     OM_BLOG(LOG_ERROR, "recv error %d, closing socket", iResult);
                     detachSource();
+                    break;
                 }
                 else if (iResult == 0)
                 {
                     OM_BLOG(LOG_INFO, "recv 0 bytes, closing socket");
                     detachSource();
+                    break;
                 }
                 else
                 {
@@ -345,7 +347,7 @@ void QuestVideoMngrImpl::VideoTickImpl(bool skipOldFrames)
         if(!m_frameCollection.HasCompletedFrame())
             ReceiveData();
 
-        if (!videoSource->isValid())	// socket disconnected
+        if (videoSource == NULL || !videoSource->isValid())	// socket disconnected
             return;
 
         //std::chrono::time_point<std::chrono::system_clock> startTime = std::chrono::system_clock::now();
@@ -602,7 +604,7 @@ void QuestVideoMngrImpl::attachSource(std::shared_ptr<QuestVideoSource> videoSou
 
 void QuestVideoMngrImpl::detachSource()
 {
-    if (videoSource == NULL || !videoSource->isValid())
+    if (videoSource == NULL)// || !videoSource->isValid())
     {
         OM_BLOG(LOG_ERROR, "Not connected");
         return;
@@ -659,6 +661,8 @@ void QuestVideoSourceFileImpl::open(const char *filename)
 
 int QuestVideoSourceFileImpl::recv(char *buf, size_t bufferSize)
 {
+    if(feof(file))
+        return 0;
     return static_cast<int>(::fread(buf, 1, bufferSize, file));
 }
 
