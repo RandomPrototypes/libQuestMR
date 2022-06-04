@@ -32,7 +32,16 @@ public:
             sessionOptions.AppendExecutionProvider_CUDA(cuda_options);
         }
         sessionOptions.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);
-        session = new Ort::Session(env, onnxModelFilename, sessionOptions);
+        #ifdef _WIN32
+            size_t filename_size = strlen(onnxModelFilename);
+            wchar_t *wc_filename = new wchar_t[filename_size+1];
+            size_t convertedChars = 0;
+            mbstowcs_s(&convertedChars, wc_filename, filename_size+1, onnxModelFilename, _TRUNCATE);
+            session = new Ort::Session(env, wc_filename, sessionOptions);
+            delete [] wc_filename;
+        #else
+            session = new Ort::Session(env, onnxModelFilename, sessionOptions);
+        #endif
         io_binding = new Ort::IoBinding(*session);
         
         memoryInfo = Ort::MemoryInfo::CreateCpu(OrtAllocatorType::OrtArenaAllocator, OrtMemType::OrtMemTypeDefault);
