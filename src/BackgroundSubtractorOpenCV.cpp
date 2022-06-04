@@ -25,7 +25,15 @@ public:
     
     virtual void apply(cv::InputArray image, cv::OutputArray fgmask, double learningRate=-1)
     {
-    	pBackSub->apply(image, fgmask, needReset ? 1:learningRate);
+        cv::Mat img = image.getMat();
+        cv::Mat &mask = fgmask.getMatRef();
+        mask.create(image.size(), CV_8UC1);
+        cv::Rect ROI2 = getROI();
+        if(ROI2.empty())
+            ROI2 = cv::Rect(0,0,mask.cols,mask.rows);
+        if(ROI2.size() != mask.size())
+            mask.setTo(cv::Scalar(0));
+    	pBackSub->apply(img(ROI2), mask(ROI2), needReset ? 1:learningRate);
         needReset = false;
     }
     

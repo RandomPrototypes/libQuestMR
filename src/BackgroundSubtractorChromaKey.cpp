@@ -45,12 +45,17 @@ public:
 			backgroundYCrCb = frameYCrCb;
         cv::Mat &mask = _fgmask.getMatRef();
         mask.create(frameYCrCb.size(), CV_8UC1);
+        cv::Rect ROI2 = getROI();
+        if(ROI2.empty())
+            ROI2 = cv::Rect(0,0,mask.cols,mask.rows);
+        if(ROI2.size() != mask.size())
+            mask.setTo(cv::Scalar(0));
         if(useSingleColor) {
-            for(int i = 0; i < mask.rows; i++)
+            for(int i = ROI2.y; i < ROI2.y + ROI2.height; i++)
             {
-                unsigned char *dst = mask.ptr<unsigned char>(i);
-                unsigned char *src = frameYCrCb.ptr<unsigned char>(i);
-                for(int j = 0; j < mask.cols; j++) {
+                unsigned char *dst = mask.ptr<unsigned char>(i) + ROI2.x;
+                unsigned char *src = frameYCrCb.ptr<unsigned char>(i) + ROI2.x * 3;
+                for(int j = 0; j < ROI2.width; j++) {
                     int diff_cr = (src[1] - backgroundCr);
                     int diff_cb = (src[2] - backgroundCb);
                     int diff2 = diff_cr*diff_cr + diff_cb*diff_cb;
@@ -65,12 +70,12 @@ public:
                 }
             }
         } else {
-            for(int i = 0; i < mask.rows; i++)
+            for(int i = ROI2.y; i < ROI2.y + ROI2.height; i++)
             {
-                unsigned char *dst = mask.ptr<unsigned char>(i);
-                unsigned char *src = frameYCrCb.ptr<unsigned char>(i);
-                unsigned char *back = backgroundYCrCb.ptr<unsigned char>(i);
-                for(int j = 0; j < mask.cols; j++) {
+                unsigned char *dst = mask.ptr<unsigned char>(i) + ROI2.x;
+                unsigned char *src = frameYCrCb.ptr<unsigned char>(i) + ROI2.x * 3;
+                unsigned char *back = backgroundYCrCb.ptr<unsigned char>(i) + ROI2.x * 3;
+                for(int j = 0; j < ROI2.width; j++) {
                     int diff_cr = (src[1] - back[1]);
                     int diff_cb = (src[2] - back[2]);
                     int diff2 = diff_cr*diff_cr + diff_cb*diff_cb;

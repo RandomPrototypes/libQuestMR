@@ -23,6 +23,7 @@ public:
 	virtual ~BackgroundSubtractor();
 	virtual void restart() = 0;
 	virtual void apply(cv::InputArray image, cv::OutputArray fgmask, double learningRate=-1) = 0;
+	virtual void setROI(cv::Rect ROI) = 0;
 	
 	virtual int getParameterCount() const = 0;
 	virtual int getParameterId(const char *name) const = 0;
@@ -73,9 +74,12 @@ public:
 class BackgroundSubtractorBase : public BackgroundSubtractor
 {
 public:
+	BackgroundSubtractorBase();
     virtual ~BackgroundSubtractorBase();
     virtual void restart();
 	virtual void apply(cv::InputArray image, cv::OutputArray fgmask, double learningRate=-1) = 0;
+	virtual void setROI(cv::Rect ROI);
+	virtual cv::Rect getROI() const;
 	virtual int getParameterCount() const;
     virtual int getParameterId(const char *name) const;
 	virtual PortableString getParameterName(int id) const;
@@ -117,6 +121,7 @@ public:
 
 private:
     std::vector<BackgroundSubtractorParam> listParams;
+    cv::Rect ROI;
 };
 
 

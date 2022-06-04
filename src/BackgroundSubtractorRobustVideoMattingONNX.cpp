@@ -71,6 +71,9 @@ public:
     virtual void apply(cv::InputArray image, cv::OutputArray _fgmask, double learningRate=-1)
     {
         const cv::Mat &img = image.getMat();
+        cv::Rect ROI2 = getROI();
+        if(ROI2.empty())
+            ROI2 = cv::Rect(0,0,img.cols,img.rows);
         if(firstFrame) {
             io_binding->BindInput("r1i", r1i);
             io_binding->BindInput("r2i", r1i);
@@ -78,13 +81,13 @@ public:
             io_binding->BindInput("r4i", r1i);
             io_binding->BindInput("downsample_ratio", downsample_ratio_tensor);
 
-            src_data = std::vector<float>(img.cols * img.rows * 3);
-            src_dims[0] = 1; src_dims[1] = 3; src_dims[2] = img.rows; src_dims[3] = img.cols;
+            src_data = std::vector<float>(ROI2.width * ROI2.height * 3);
+            src_dims[0] = 1; src_dims[1] = 3; src_dims[2] = ROI2.height; src_dims[3] = ROI2.width;
             src_tensor = Ort::Value::CreateTensor<float>(memoryInfo, src_data.data(), src_data.size(), src_dims, 4);
             firstFrame = false;
         }
         cv::Mat blobMat;
-        cv::dnn::blobFromImage(img, blobMat);
+        cv::dnn::blobFromImage(img(ROI2), blobMat);
         
         src_data.assign(blobMat.begin<float>(), blobMat.end<float>());
         for(size_t i = 0; i < src_data.size(); i++)
@@ -96,11 +99,14 @@ public:
         std::vector<std::string> outputNames = io_binding->GetOutputNames();
         std::vector<Ort::Value> outputValues = io_binding->GetOutputValues();
         
-        cv::Mat& mask = _fgmask.getMatRef();
+        cv::Mat &mask = _fgmask.getMatRef();
+        mask.create(image.size(), CV_8UC1);
+        if(ROI2.size() != mask.size())
+            mask.setTo(cv::Scalar(0));
         for(int i = 0; i < outputNames.size(); i++) {
         	if(outputNames[i] == "pha") {
-        		const cv::Mat outputImg(img.rows, img.cols, CV_32FC1, const_cast<float*>(outputValues[i].GetTensorData<float>()));
-        		outputImg.convertTo(mask, CV_8UC1, 255.0);
+        		const cv::Mat outputImg(ROI2.height, ROI2.width, CV_32FC1, const_cast<float*>(outputValues[i].GetTensorData<float>()));
+        		outputImg.convertTo(mask(ROI2), CV_8UC1, 255.0);
         	} else if(outputNames[i] == "r1o") {
         		io_binding->BindInput("r1i", outputValues[i]);
         	} else if(outputNames[i] == "r2o") {

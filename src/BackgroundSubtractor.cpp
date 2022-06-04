@@ -9,12 +9,27 @@ BackgroundSubtractor::~BackgroundSubtractor()
 {
 }
 
+BackgroundSubtractorBase::BackgroundSubtractorBase()
+{
+    ROI = cv::Rect(0,0,0,0);
+}
+
 BackgroundSubtractorBase::~BackgroundSubtractorBase()
 {
 }
 
 void BackgroundSubtractorBase::restart()
 {
+}
+
+void BackgroundSubtractorBase::setROI(cv::Rect ROI)
+{
+    this->ROI = ROI;
+}
+
+cv::Rect BackgroundSubtractorBase::getROI() const
+{
+    return ROI;
 }
 
 int BackgroundSubtractorBase::getParameterCount() const
