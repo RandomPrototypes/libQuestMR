@@ -57,13 +57,6 @@ public:
         for(int i = 0; i < 4; i++)
             rec_dims[i] = 1;
         r1i = Ort::Value::CreateTensor<float>(memoryInfo, &rec_data, 1, rec_dims, 4);
-        
-        io_binding->BindOutput("fgr", memoryInfoCuda);
-        io_binding->BindOutput("pha", memoryInfo);
-        io_binding->BindOutput("r1o", memoryInfoCuda);
-        io_binding->BindOutput("r2o", memoryInfoCuda);
-        io_binding->BindOutput("r3o", memoryInfoCuda);
-        io_binding->BindOutput("r4o", memoryInfoCuda);
     }
 
     virtual ~BackgroundSubtractorRobustVideoMattingONNX()
@@ -75,6 +68,8 @@ public:
     virtual void restart()
     {
         firstFrame = true;
+        delete io_binding;
+        io_binding = new Ort::IoBinding(*session);
     }
 
     virtual void apply(cv::InputArray image, cv::OutputArray _fgmask, double learningRate=-1)
@@ -84,6 +79,12 @@ public:
         if(ROI2.empty())
             ROI2 = cv::Rect(0,0,img.cols,img.rows);
         if(firstFrame) {
+            io_binding->BindOutput("fgr", memoryInfoCuda);
+            io_binding->BindOutput("pha", memoryInfo);
+            io_binding->BindOutput("r1o", memoryInfoCuda);
+            io_binding->BindOutput("r2o", memoryInfoCuda);
+            io_binding->BindOutput("r3o", memoryInfoCuda);
+            io_binding->BindOutput("r4o", memoryInfoCuda);
             io_binding->BindInput("r1i", r1i);
             io_binding->BindInput("r2i", r1i);
             io_binding->BindInput("r3i", r1i);
