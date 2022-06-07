@@ -49,10 +49,6 @@ public:
         //Not sure if this really allocate on the GPU, there is currently no documentation on it...
         memoryInfoCuda = Ort::MemoryInfo("Cuda", OrtAllocatorType::OrtDeviceAllocator, 0, OrtMemType::OrtMemTypeDefault);
         
-        downsample_ratio = 0.25f;
-        downsample_ratio_dims[0] = 1;
-        downsample_ratio_tensor = Ort::Value::CreateTensor<float>(memoryInfo, &downsample_ratio, 1, downsample_ratio_dims, 1);
-        
         rec_data = 0.0f;
         for(int i = 0; i < 4; i++)
             rec_dims[i] = 1;
@@ -79,6 +75,10 @@ public:
         if(ROI2.empty())
             ROI2 = cv::Rect(0,0,img.cols,img.rows);
         if(firstFrame) {
+            downsample_ratio = 0.25f * 1080 / img.rows;
+            downsample_ratio_dims[0] = 1;
+            downsample_ratio_tensor = Ort::Value::CreateTensor<float>(memoryInfo, &downsample_ratio, 1, downsample_ratio_dims, 1);
+
             io_binding->BindOutput("fgr", memoryInfoCuda);
             io_binding->BindOutput("pha", memoryInfo);
             io_binding->BindOutput("r1o", memoryInfoCuda);
