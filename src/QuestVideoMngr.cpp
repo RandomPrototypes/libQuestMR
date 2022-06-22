@@ -183,11 +183,7 @@ QuestVideoMngr::~QuestVideoMngr()
 
 QuestVideoMngrImpl::QuestVideoMngrImpl()
 {
-    FILE *audioFile = fopen("test.audio", "wb");
-    fclose(audioFile);
 	videoDecoding = true;
-    FILE *debugTimestamp = fopen("debugTimestamp2.csv", "w");
-    fclose(debugTimestamp);
 	#ifdef LIBQUESTMR_USE_FFMPEG
     m_codec = avcodec_find_decoder(AV_CODEC_ID_H264);
     if (!m_codec)
@@ -435,10 +431,6 @@ void QuestVideoMngrImpl::VideoTickImpl(bool skipOldFrames)
                                     //FILE *debugTimestamp = fopen("debugTimestamp2.csv", "a");
                                     //fprintf(debugTimestamp, "%llu,%llu\n", audioDataHeader.timestamp, audioFrame.localTimestamp);
                                     //fclose(debugTimestamp);
-                                    
-                                    FILE *audioFile = fopen("test.audio", "ab");
-                                    fwrite((uint8_t*)audioFrame->m_payload.data() + sizeof(AudioDataHeader), audioDataHeader.dataLength, 1, audioFile);
-                                    fclose(audioFile);
 		                        }
 		                        else
 		                        {
@@ -502,10 +494,6 @@ void QuestVideoMngrImpl::VideoTickImpl(bool skipOldFrames)
 
 		                    mostRecentImg = m_temp_texture;
 		                    mostRecentTimestamp = frame->localTimestamp;
-
-                            FILE *debugTimestamp = fopen("debugTimestamp2.csv", "a");
-                            //fprintf(debugTimestamp, "%llu,%llu\n", frame->localTimestamp, frame->);
-                            fclose(debugTimestamp);
 
 		                    //cv::imshow("img", m_temp_texture);
 		                    //cv::waitKey(10);
@@ -585,7 +573,7 @@ cv::Mat QuestVideoMngrImpl::getMostRecentImg(uint64_t *timestamp, int *frameId)
 int QuestVideoMngrImpl::getMostRecentAudio(QuestAudioData*** listAudioData)
 {
     *listAudioData = &mostRecentAudioFrames[0];
-    return mostRecentAudioFrames.size();
+    return (int)mostRecentAudioFrames.size();
 }
 
 

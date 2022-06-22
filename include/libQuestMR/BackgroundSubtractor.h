@@ -128,7 +128,7 @@ private:
 extern "C" 
 {
 	LQMR_EXPORTS BackgroundSubtractor *createBackgroundSubtractorOpenCVRawPtr(cv::Ptr<cv::BackgroundSubtractor> pBackSub);
-	LQMR_EXPORTS BackgroundSubtractor *createBackgroundSubtractorChromaKeyRawPtr(int _hardThresh, int _softThresh, bool _useSingleColor, int _backgroundCr, int _backgroundCb);
+	LQMR_EXPORTS BackgroundSubtractor *createBackgroundSubtractorChromaKeyRawPtr(int _hardThresh, int _softThresh, bool _useSingleColor, bool _useYCrCb, int _backgroundCol1, int _backgroundCol2, int _backgroundCol3);
 	LQMR_EXPORTS BackgroundSubtractor *createBackgroundSubtractorRobustVideoMattingONNXRawPtr(const char *onnxModelFilename, bool use_CUDA);
 	LQMR_EXPORTS void deleteBackgroundSubtractorRawPtr(BackgroundSubtractor *backgroundSubtractor);
 	
@@ -139,10 +139,9 @@ inline std::shared_ptr<BackgroundSubtractor> createBackgroundSubtractorOpenCV(cv
 {
 	return std::shared_ptr<BackgroundSubtractor>(createBackgroundSubtractorOpenCVRawPtr(pBackSub), deleteBackgroundSubtractorRawPtr);
 }
-
-inline std::shared_ptr<BackgroundSubtractor> createBackgroundSubtractorChromaKey(int _hardThresh = 22, int _softThresh = 35, bool _useSingleColor = true, int _backgroundCr = 104, int _backgroundCb = 117)
+inline std::shared_ptr<BackgroundSubtractor> createBackgroundSubtractorChromaKey(int _hardThresh = 22, int _softThresh = 35, bool _useSingleColor = true, bool _useYCrCb = true, int _backgroundCol1 = 128, int _backgroundCol2 = 104, int _backgroundCol3 = 117)
 {
-	return std::shared_ptr<BackgroundSubtractor>(createBackgroundSubtractorChromaKeyRawPtr(_hardThresh, _softThresh, _useSingleColor, _backgroundCr, _backgroundCb), deleteBackgroundSubtractorRawPtr);
+	return std::shared_ptr<BackgroundSubtractor>(createBackgroundSubtractorChromaKeyRawPtr(_hardThresh, _softThresh, _useSingleColor, _useYCrCb, _backgroundCol1, _backgroundCol2, _backgroundCol3), deleteBackgroundSubtractorRawPtr);
 }
 
 inline std::shared_ptr<BackgroundSubtractor> createBackgroundSubtractorRobustVideoMattingONNX(const char *onnxModelFilename, bool use_CUDA)
@@ -155,6 +154,7 @@ inline std::shared_ptr<BackgroundSubtractor> createBackgroundSubtractor(int id)
 	return std::shared_ptr<BackgroundSubtractor>(createBackgroundSubtractorRawPtr(id), deleteBackgroundSubtractorRawPtr);
 }
 
+LQMR_EXPORTS void setBackgroundSubtractorResourceFolder(const char *folderName);
 LQMR_EXPORTS int getBackgroundSubtractorCount();
 LQMR_EXPORTS PortableString getBackgroundSubtractorName(int id);
 

@@ -38,7 +38,11 @@ if(USE_ONNX_RUNTIME)
 endif()
 
 if(USE_OPENCV)
-	find_package(OpenCV REQUIRED)
+	find_package(OpenCV REQUIRED video dnn calib3d)
+	set(OpenCV_LIBS_minimal ${OpenCV_LIBS})
+	if(BUILD_DEMO)
+		find_package(OpenCV REQUIRED highgui)
+	endif()
 endif()
 
 if(USE_RPCameraInterface)
@@ -145,7 +149,7 @@ if(BUILD_DEMO)
 endif()
 
 if(USE_OPENCV)
-	target_link_libraries(libQuestMR PRIVATE ${OpenCV_LIBS})
+	target_link_libraries(libQuestMR PRIVATE ${OpenCV_LIBS_minimal})
 endif()
 
 if(WIN32)

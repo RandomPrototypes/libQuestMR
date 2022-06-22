@@ -5,6 +5,8 @@
 namespace libQuestMR
 {
 
+std::string backgroundSubtractorResourceFolder = ".";
+
 BackgroundSubtractor::~BackgroundSubtractor()
 {
 }
@@ -34,13 +36,13 @@ cv::Rect BackgroundSubtractorBase::getROI() const
 
 int BackgroundSubtractorBase::getParameterCount() const
 {
-    return listParams.size();
+    return static_cast<int>(listParams.size());
 }
 int BackgroundSubtractorBase::getParameterId(const char *name) const
 {
     for(size_t i = 0; i < listParams.size(); i++) {
         if(listParams[i].name.str() == name)
-            return i;
+            return static_cast<int>(i);
     }
     return -1;
 }
@@ -176,10 +178,10 @@ bool BackgroundSubtractorBase::getParameterValAsYCrCb(int id, unsigned char *y, 
     unsigned char r,g,b;
     bool ret = getParameterValAsRGB(id, &r, &g, &b);
     float delta = 128;
-    float y_float = 0.299 * r + 0.587 * g + 0.114 * b;
+    float y_float = 0.299f * r + 0.587f * g + 0.114f * b;
     *y = cv::saturate_cast<unsigned char>(cvRound(y_float));
-    *cr = cv::saturate_cast<unsigned char>(cvRound((r-y_float) * 0.713 + delta));
-    *cb = cv::saturate_cast<unsigned char>(cvRound((b-y_float) * 0.564 + delta));
+    *cr = cv::saturate_cast<unsigned char>(cvRound((r-y_float) * 0.713f + delta));
+    *cb = cv::saturate_cast<unsigned char>(cvRound((b-y_float) * 0.564f + delta));
     return ret;
 }
 void BackgroundSubtractorBase::setParameterVal(int id, const char *val)
@@ -387,16 +389,23 @@ std::vector<std::pair<std::string, BackgroundSubtractorFnPtr> > getBackgroundSub
     std::vector<std::pair<std::string, BackgroundSubtractorFnPtr> > list;
     list.push_back(std::make_pair("OpenCV_KNN", [](){ return createBackgroundSubtractorOpenCVRawPtr(cv::createBackgroundSubtractorKNN());}));
     list.push_back(std::make_pair("OpenCV_MOG2", [](){ return createBackgroundSubtractorOpenCVRawPtr(cv::createBackgroundSubtractorMOG2());}));
-    list.push_back(std::make_pair("Greenscreen", [](){ return createBackgroundSubtractorChromaKeyRawPtr(22, 35, true, 104, 117);}));
-    list.push_back(std::make_pair("ChromaKey_diffFirstFrame", [](){ return createBackgroundSubtractorChromaKeyRawPtr(22, 35, false, 0, 0);}));
-    list.push_back(std::make_pair("ONNX_RobustVideoMatting", [](){ return createBackgroundSubtractorRobustVideoMattingONNXRawPtr("rvm_mobilenetv3_fp32.onnx", false);}));
-    list.push_back(std::make_pair("ONNX_RobustVideoMatting_CUDA", [](){ return createBackgroundSubtractorRobustVideoMattingONNXRawPtr("rvm_mobilenetv3_fp32.onnx", true);}));
+    list.push_back(std::make_pair("ChromaKey_CrCb", [](){ return createBackgroundSubtractorChromaKeyRawPtr(22, 35, true, true, 128, 104, 117);}));
+    list.push_back(std::make_pair("ChromaKey_RGB", [](){ return createBackgroundSubtractorChromaKeyRawPtr(22, 35, true, false, 0, 255, 0);}));
+    list.push_back(std::make_pair("DiffFirstFrame_CrCb", [](){ return createBackgroundSubtractorChromaKeyRawPtr(22, 35, false, true, 0, 0, 0);}));
+    list.push_back(std::make_pair("DiffFirstFrame_RGB", [](){ return createBackgroundSubtractorChromaKeyRawPtr(22, 35, false, false, 0, 0, 0);}));
+    list.push_back(std::make_pair("ONNX_RobustVideoMatting", [](){ return createBackgroundSubtractorRobustVideoMattingONNXRawPtr((backgroundSubtractorResourceFolder+"/rvm_mobilenetv3_fp32.onnx").c_str(), false);}));
+    list.push_back(std::make_pair("ONNX_RobustVideoMatting_CUDA", [](){ return createBackgroundSubtractorRobustVideoMattingONNXRawPtr((backgroundSubtractorResourceFolder+"/rvm_mobilenetv3_fp32.onnx").c_str(), true);}));
     return list;
+}
+
+LQMR_EXPORTS void setBackgroundSubtractorResourceFolder(const char *folderName)
+{
+    backgroundSubtractorResourceFolder = folderName;
 }
 
 LQMR_EXPORTS int getBackgroundSubtractorCount()
 {
-    return getBackgroundSubtractorList().size();
+    return static_cast<int>(getBackgroundSubtractorList().size());
 }
 LQMR_EXPORTS PortableString getBackgroundSubtractorName(int id)
 {
