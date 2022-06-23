@@ -77,7 +77,7 @@ void demoSegmentation(const char *outputFile)
 		cv::Mat fgMask;
         backgroundSub->apply(frame, fgMask);
 
-		printf("timestamp %ld\n", imgData2->getTimestamp());
+		printf("timestamp %s\n", std::to_string(imgData2->getTimestamp()).c_str());
 
 		if(outputFile != NULL)
 			videoEncoder->write(createImageDataFromMat(frame, imgData2->getTimestamp(), false));

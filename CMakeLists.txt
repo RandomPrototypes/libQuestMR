@@ -38,7 +38,11 @@ if(USE_ONNX_RUNTIME)
 endif()
 
 if(USE_OPENCV)
-	find_package(OpenCV REQUIRED)
+	find_package(OpenCV REQUIRED video dnn calib3d)
+	set(OpenCV_LIBS_minimal ${OpenCV_LIBS})
+	if(BUILD_DEMO)
+		find_package(OpenCV REQUIRED highgui)
+	endif()
 endif()
 
 if(USE_RPCameraInterface)
@@ -78,6 +82,7 @@ SET (LIB_INCLUDE
              src/frame.h
              src/log.h
              include/libQuestMR/QuestVideoMngr.h
+             include/libQuestMR/QuestVideoTimestampRectifier.h
              include/libQuestMR/QuestCalibData.h
              include/libQuestMR/QuestFrameData.h
              include/libQuestMR/QuestCommunicator.h
@@ -89,6 +94,7 @@ SET (LIB_INCLUDE
 SET (LIB_SRC
             src/frame.cpp
             src/QuestVideoMngr.cpp
+            src/QuestVideoTimestampRectifier.cpp
             src/QuestCalibData.cpp
             src/QuestFrameData.cpp
             src/QuestCommunicator.cpp
@@ -136,13 +142,14 @@ if(BUILD_DEMO)
 		add_executable(demo-capture-RPCam ${LIB_INCLUDE} demo/demo-capture-RPCam.cpp demo/RPCam_helper.h demo/RPCam_helper.cpp)
 		add_executable(demo-captureRaw-RPCam ${LIB_INCLUDE} demo/demo-captureRaw-RPCam.cpp demo/RPCam_helper.h demo/RPCam_helper.cpp)
 		add_executable(demo-processRawCapture ${LIB_INCLUDE} demo/demo-processRawCapture.cpp demo/RPCam_helper.h demo/RPCam_helper.cpp)
+		add_executable(demo-processRawCaptureAudio ${LIB_INCLUDE} demo/demo-processRawCaptureAudio.cpp demo/RPCam_helper.h demo/RPCam_helper.cpp)
 		add_executable(demo-chromakey-RPCam ${LIB_INCLUDE} demo/demo-chromakey-RPCam.cpp demo/RPCam_helper.h demo/RPCam_helper.cpp)
 		add_executable(demo-segmentation-RPCam ${LIB_INCLUDE} demo/demo-segmentation-RPCam.cpp demo/RPCam_helper.h demo/RPCam_helper.cpp)
 	endif()
 endif()
 
 if(USE_OPENCV)
-	target_link_libraries(libQuestMR PRIVATE ${OpenCV_LIBS})
+	target_link_libraries(libQuestMR PRIVATE ${OpenCV_LIBS_minimal})
 endif()
 
 if(WIN32)
@@ -191,6 +198,8 @@ if(BUILD_DEMO)
 		target_link_libraries(demo-captureRaw-RPCam LINK_PUBLIC libQuestMR BufferedSocket RPCameraInterface)
 		target_link_libraries(demo-processRawCapture PRIVATE ${OpenCV_LIBS})
 		target_link_libraries(demo-processRawCapture LINK_PUBLIC libQuestMR BufferedSocket RPCameraInterface)
+		target_link_libraries(demo-processRawCaptureAudio PRIVATE ${OpenCV_LIBS})
+		target_link_libraries(demo-processRawCaptureAudio LINK_PUBLIC libQuestMR BufferedSocket RPCameraInterface)
 		target_link_libraries(demo-chromakey-RPCam PRIVATE ${OpenCV_LIBS})
 		target_link_libraries(demo-chromakey-RPCam LINK_PUBLIC libQuestMR BufferedSocket RPCameraInterface)
 		target_link_libraries(demo-segmentation-RPCam PRIVATE ${OpenCV_LIBS})

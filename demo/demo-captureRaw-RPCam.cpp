@@ -13,7 +13,7 @@ using namespace RPCameraInterface;
 
 void captureFromQuest(const char *ipAddr, const char *recordName)
 {
-	int mask_subsample_factor = 2;
+	bool recordDirectlyFromQuest = true;
 
 	int bitrate = 5000000;
 
@@ -31,6 +31,8 @@ void captureFromQuest(const char *ipAddr, const char *recordName)
     	return;
     }
     mngr->attachSource(videoSrc);
+	if(recordDirectlyFromQuest)
+		mngr->setRecording(".", recordName);
 
 	std::shared_ptr<QuestVideoMngrThreadData> questVideoMngrThreadData = createQuestVideoMngrThreadData(mngr);
 	std::thread questVideoMngrThread(QuestVideoMngrThreadFunc, questVideoMngrThreadData.get());
@@ -41,9 +43,10 @@ void captureFromQuest(const char *ipAddr, const char *recordName)
     
     std::shared_ptr<ImageData> imgData2 = createImageData();
 
-	std::shared_ptr<VideoEncoder> videoEncoder_quest = createVideoEncoder();
+	std::shared_ptr<VideoEncoder> videoEncoder_quest;
+	if(!recordDirectlyFromQuest)
+		videoEncoder_quest = createVideoEncoder();
 	std::shared_ptr<VideoEncoder> videoEncoder_cam = createVideoEncoder();
-	videoEncoder_quest->setUseFrameTimestamp(false);
 	videoEncoder_cam->setUseFrameTimestamp(false);
 	FILE *timestampFile = NULL;
 	bool init = false;
@@ -65,12 +68,14 @@ void captureFromQuest(const char *ipAddr, const char *recordName)
 
 		if(recordName != NULL && !questImg.empty() && imgFormat.width > 0) {
 			if(!init) {
-				videoEncoder_quest->open((std::string(recordName)+"_quest.mp4").c_str(), questImg.rows, questImg.cols, 30, "", bitrate);
+				if(!recordDirectlyFromQuest)
+					videoEncoder_quest->open((std::string(recordName)+"_quest.mp4").c_str(), questImg.rows, questImg.cols, 30, "", bitrate);
 				videoEncoder_cam->open((std::string(recordName)+"_cam.mp4").c_str(), srcFormat.height, srcFormat.width, 30, "", bitrate);
-				timestampFile = fopen((std::string(recordName)+"_timestamp.txt").c_str(), "w");
+				timestampFile = fopen((std::string(recordName)+"_camTimestamp.txt").c_str(), "w");
 				init = true;
 			} else {
-				videoEncoder_quest->write(createImageDataFromMat(questImg, imgData->getTimestamp(), false));
+				if(!recordDirectlyFromQuest)
+					videoEncoder_quest->write(createImageDataFromMat(questImg, imgData->getTimestamp(), false));
 				videoEncoder_cam->write(imgData2);
 				fprintf(timestampFile, "%s\n", std::to_string(imgData->getTimestamp()).c_str());
 			}
@@ -97,7 +102,8 @@ void captureFromQuest(const char *ipAddr, const char *recordName)
 	questVideoMngrThreadData->setFinishedVal(true);
 	questVideoMngrThread.join();
 	if(init) {
-		videoEncoder_quest->release();
+		if(!recordDirectlyFromQuest)
+			videoEncoder_quest->release();
 		videoEncoder_cam->release();
 		fclose(timestampFile);
 	}

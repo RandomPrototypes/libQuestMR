@@ -58,15 +58,28 @@ public:
     virtual void close() = 0;
 };
 
+class LQMR_EXPORTS QuestAudioData
+{
+public:
+	virtual ~QuestAudioData();
+	virtual uint64_t getLocalTimestamp() const = 0;//timestamp when received the data
+	virtual uint64_t getDeviceTimestamp() const = 0;//timestamp recorded on the device before transfer
+	virtual int getNbChannels() const = 0;//number of channels
+	virtual uint32_t getSampleRate() const = 0;//sample rate
+	virtual const unsigned char *getData() const = 0;//raw audio data
+	virtual int getDataLength() const = 0;//length (in bytes) of the audio data
+};
+
 class LQMR_EXPORTS QuestVideoMngr
 {
 public:
-    ~QuestVideoMngr();
+    virtual ~QuestVideoMngr();
     virtual void StartDecoder() = 0;
     virtual void StopDecoder() = 0;
 
 	virtual void setRecording(const char *folder, const char *filenameWithoutExt) = 0;//set folder and filename (without extension) for recording 
-	virtual void setRecordedTimestampSource(const char *filename) = 0;//set timestamp file (for playback)
+	virtual void setRecordedTimestampFile(const char *filename, bool use_rectifyTimestamps = true) = 0;//set timestamp file (for playback)
+	virtual void setRecordedTimestamp(const std::vector<uint64_t>& listTimestamp) = 0;//set timestamps (for playback)
 	virtual void setVideoDecoding(bool videoDecoding) = 0;//to disable video decoding (useful if we want to record without preview)
 
     virtual void ReceiveData() = 0;
@@ -79,8 +92,10 @@ public:
 	virtual uint32_t getHeight() = 0;//get img height
 	
 	#ifdef LIBQUESTMR_USE_OPENCV
-    virtual cv::Mat getMostRecentImg(uint64_t *timestamp = NULL) = 0;
+    virtual cv::Mat getMostRecentImg(uint64_t *timestamp = NULL, int *frameId = NULL) = 0;
 	#endif
+	virtual int getMostRecentAudio(QuestAudioData*** listAudioData) = 0;
+	
 };
 
 class LQMR_EXPORTS QuestVideoMngrThreadData
@@ -97,7 +112,7 @@ public:
     virtual void threadFunc() = 0;
     
 #ifdef LIBQUESTMR_USE_OPENCV
-    virtual cv::Mat getMostRecentImg(uint64_t *timestamp) = 0;
+    virtual cv::Mat getMostRecentImg(uint64_t *timestamp, int *frameId = NULL) = 0;
 #endif
 };
 
@@ -112,6 +127,9 @@ extern "C"
 	LQMR_EXPORTS void deleteQuestVideoMngrRawPtr(QuestVideoMngr *videoMngr);
 	LQMR_EXPORTS QuestVideoMngrThreadData *createQuestVideoMngrThreadDataRawPtr(std::shared_ptr<QuestVideoMngr> mngr);
 	LQMR_EXPORTS void deleteQuestVideoMngrThreadDataRawPtr(QuestVideoMngrThreadData *threadData);
+	
+	LQMR_EXPORTS bool loadQuestRecordedTimestamps(const char *filename, std::vector<uint64_t> *listTimestamp, std::vector<uint32_t> *listType = NULL, std::vector<uint32_t> *listSize = NULL);
+
 }
 
 inline std::shared_ptr<QuestVideoSourceBufferedSocket> createQuestVideoSourceBufferedSocket()

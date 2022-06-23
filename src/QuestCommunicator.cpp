@@ -231,7 +231,7 @@ private:
     std::shared_ptr<QuestCommunicator> questCom;
     std::queue<QuestFrameData> listFrameData;
     PortableString calibData;
-    bool needUploadCalibData;
+    bool needUploadCalibData, waitingCalibUploadConfirmation;
     bool finished;
     uint32_t triggerCount;
     int maxQueueSize;
@@ -247,6 +247,7 @@ QuestCommunicatorThreadDataImpl::QuestCommunicatorThreadDataImpl(std::shared_ptr
     finished = false;
     triggerCount = 0;
     needUploadCalibData = false;
+    waitingCalibUploadConfirmation = false;
     maxQueueSize = 10;
 }
 
@@ -274,12 +275,13 @@ void QuestCommunicatorThreadDataImpl::sendCalibDataToQuest(const PortableString&
     mutex.lock();
     calibData = data;
     needUploadCalibData = true;
+    waitingCalibUploadConfirmation = true;
     mutex.unlock();
 }
 
 bool QuestCommunicatorThreadDataImpl::isCalibDataUploaded()
 {
-	return !needUploadCalibData;
+	return !needUploadCalibData && !waitingCalibUploadConfirmation;
 }
 
 bool QuestCommunicatorThreadDataImpl::hasNewFrameData()
@@ -385,6 +387,9 @@ void QuestCommunicatorThreadDataImpl::threadFunc()
             //printf("trigger pressed: %d\n", getTriggerCount());
         } else if(message.type == QuestMessageTypeId::calibrationData) {
             setCalibData(message.data.c_str());
+        } else if(message.type == QuestMessageTypeId::operationComplete) {
+            if(!needUploadCalibData)
+                waitingCalibUploadConfirmation = false;
         } else {
             /*printf("message type:%u size:%u\n", message.type, message.data.size()-1);
             for(size_t i = 0; i < message.data.size(); i++)

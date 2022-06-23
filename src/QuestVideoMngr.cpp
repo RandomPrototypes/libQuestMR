@@ -15,10 +15,14 @@
  */
 
 #include <libQuestMR/QuestVideoMngr.h>
+#include <libQuestMR/QuestVideoTimestampRectifier.h>
 #include <fcntl.h>
 #include <thread>
+#include <fstream>
 #include "log.h"
 #include "frame.h"
+#include <BufferedSocket/DataPacket.h>
+
 
 namespace libQuestMR
 {
@@ -38,16 +42,87 @@ std::string GetAvErrorString(int errNum)
 }
 #endif
 
+class LQMR_EXPORTS QuestAudioDataImpl : public QuestAudioData
+{
+public:
+    QuestAudioDataImpl(uint64_t deviceTimestamp, uint64_t localTimestamp, int nbChannels, uint32_t sampleRate, unsigned char *data, int dataLength);
+	virtual ~QuestAudioDataImpl();
+	virtual uint64_t getLocalTimestamp() const;//timestamp when received the data
+	virtual uint64_t getDeviceTimestamp() const;//timestamp recorded on the device before transfer
+	virtual int getNbChannels() const;//number of channels
+    virtual uint32_t getSampleRate() const;//sample rate
+	virtual const unsigned char *getData() const;//raw audio data
+    virtual int getDataLength() const;//length (in bytes) of the audio data
+protected:
+    uint64_t deviceTimestamp, localTimestamp;
+    int nbChannels;
+    unsigned char *data;
+    int dataLength;
+    uint32_t sampleRate;
+};
+
+QuestAudioData::~QuestAudioData()
+{
+}
+
+QuestAudioDataImpl::QuestAudioDataImpl(uint64_t deviceTimestamp, uint64_t localTimestamp, int nbChannels, uint32_t sampleRate, unsigned char *data, int dataLength)
+    :deviceTimestamp(deviceTimestamp), localTimestamp(localTimestamp), nbChannels(nbChannels), sampleRate(sampleRate), dataLength(dataLength)
+{
+    if(data == NULL)
+        this->data = NULL;
+    else {
+        this->data = new unsigned char[dataLength];
+        memcpy(this->data, data, dataLength);
+    }
+}
+
+QuestAudioDataImpl::~QuestAudioDataImpl()
+{
+    if(data != NULL)
+        delete data;
+}
+
+uint64_t QuestAudioDataImpl::getLocalTimestamp() const
+{
+    return localTimestamp;
+}
+
+uint64_t QuestAudioDataImpl::getDeviceTimestamp() const
+{
+    return deviceTimestamp;
+}
+
+int QuestAudioDataImpl::getNbChannels() const
+{
+    return nbChannels;
+}
+
+uint32_t QuestAudioDataImpl::getSampleRate() const 
+{
+    return sampleRate;
+}
+
+const unsigned char *QuestAudioDataImpl::getData() const
+{
+    return data;
+}
+
+int QuestAudioDataImpl::getDataLength() const
+{
+    return dataLength;
+}
+
 class QuestVideoMngrImpl : public QuestVideoMngr
 {
 public:
     QuestVideoMngrImpl();
-    ~QuestVideoMngrImpl();
+    virtual ~QuestVideoMngrImpl();
     virtual void StartDecoder();
     virtual void StopDecoder();
 
 	virtual void setRecording(const char *folder, const char *filenameWithoutExt);//set folder and filename (without extension) for recording 
-	virtual void setRecordedTimestampSource(const char *filename);//set timestamp file (for playback)
+	virtual void setRecordedTimestampFile(const char *filename, bool use_rectifyTimestamps = true);//set timestamp file (for playback)
+    virtual void setRecordedTimestamp(const std::vector<uint64_t>& listTimestamp);//set timestamps (for playback)
 	virtual void setVideoDecoding(bool videoDecoding);//to disable video decoding (useful if we want to record without preview)
 
     virtual void ReceiveData();
@@ -60,10 +135,12 @@ public:
 	virtual uint32_t getHeight();//get img height
 	
 	#ifdef LIBQUESTMR_USE_OPENCV
-    virtual cv::Mat getMostRecentImg(uint64_t *timestamp = NULL);
+    virtual cv::Mat getMostRecentImg(uint64_t *timestamp = NULL, int *frameId = NULL);
 	#endif
+    virtual int getMostRecentAudio(QuestAudioData*** listAudioData);
 
 private:
+    void clearMostRecentAudioFrameList();
 #ifdef LIBQUESTMR_USE_FFMPEG
     const AVCodec* m_codec = nullptr;
 	AVCodecContext* m_codecContext = nullptr;
@@ -92,10 +169,12 @@ private:
 	cv::Mat mostRecentImg;
 	cv::Mat m_temp_texture;
 #endif
+    std::vector<QuestAudioData*> mostRecentAudioFrames;
     uint64_t mostRecentTimestamp;
 
 	std::shared_ptr<QuestVideoSource> videoSource = NULL;
-	FILE *recordedTimestampFile = NULL;
+    std::vector<uint64_t> recordedTimestamp;
+    int recordedTimestampId;
 };
 
 QuestVideoMngr::~QuestVideoMngr()
@@ -120,6 +199,13 @@ QuestVideoMngrImpl::QuestVideoMngrImpl()
 
 QuestVideoMngrImpl::~QuestVideoMngrImpl()
 {
+}
+
+void QuestVideoMngrImpl::clearMostRecentAudioFrameList()
+{
+    for(size_t i = 0; i < mostRecentAudioFrames.size(); i++)
+        delete mostRecentAudioFrames[i];
+    mostRecentAudioFrames.clear();
 }
 
 void QuestVideoMngrImpl::setRecording(const char *folder, const char *filenameWithoutExt)
@@ -206,11 +292,13 @@ void QuestVideoMngrImpl::ReceiveData()
                 {
                     OM_BLOG(LOG_ERROR, "recv error %d, closing socket", iResult);
                     detachSource();
+                    break;
                 }
                 else if (iResult == 0)
                 {
                     OM_BLOG(LOG_INFO, "recv 0 bytes, closing socket");
                     detachSource();
+                    break;
                 }
                 else
                 {
@@ -228,9 +316,19 @@ void QuestVideoMngrImpl::ReceiveData()
     }
 }
 
-void QuestVideoMngrImpl::setRecordedTimestampSource(const char *filename)
+void QuestVideoMngrImpl::setRecordedTimestampFile(const char *filename, bool use_rectifyTimestamps)
 {
-    recordedTimestampFile = fopen(filename, "r");
+    std::vector<uint32_t> listType;
+    loadQuestRecordedTimestamps(filename, &recordedTimestamp, &listType);
+    if(use_rectifyTimestamps)
+        recordedTimestamp = rectifyTimestamps(recordedTimestamp, listType);
+    recordedTimestampId = 0;
+}
+
+void QuestVideoMngrImpl::setRecordedTimestamp(const std::vector<uint64_t>& listTimestamp)
+{
+    recordedTimestamp = listTimestamp;
+    recordedTimestampId = 0;
 }
 
 void QuestVideoMngrImpl::setVideoDecoding(bool videoDecoding)
@@ -245,7 +343,7 @@ void QuestVideoMngrImpl::VideoTickImpl(bool skipOldFrames)
         if(!m_frameCollection.HasCompletedFrame())
             ReceiveData();
 
-        if (!videoSource->isValid())	// socket disconnected
+        if (videoSource == NULL || !videoSource->isValid())	// socket disconnected
             return;
 
         //std::chrono::time_point<std::chrono::system_clock> startTime = std::chrono::system_clock::now();
@@ -256,10 +354,9 @@ void QuestVideoMngrImpl::VideoTickImpl(bool skipOldFrames)
             //	break;
 
             auto frame = m_frameCollection.PopFrame();
-            if(recordedTimestampFile != NULL){
-                unsigned long long tmp;
-                fscanf(recordedTimestampFile, "%llu\n", &tmp);
-                frame->localTimestamp = tmp;
+            if(recordedTimestamp.size() > 0 && recordedTimestampId < recordedTimestamp.size()) {
+                frame->localTimestamp = recordedTimestamp[recordedTimestampId];
+                recordedTimestampId++;
             }
 
             //auto current_time = std::chrono::system_clock::now();
@@ -268,14 +365,8 @@ void QuestVideoMngrImpl::VideoTickImpl(bool skipOldFrames)
 
             if (frame->m_type == Frame::PayloadType::VIDEO_DIMENSION)
             {
-                struct FrameDimension
-                {
-                    int w;
-                    int h;
-                };
-                const FrameDimension* dim = (const FrameDimension*)frame->m_payload.data();
-                m_width = dim->w;
-                m_height = dim->h;
+                m_width = convertBytesToInt32(frame->m_payload.data(), false);
+                m_height = convertBytesToInt32(frame->m_payload.data() + 4, false);
 
                 OM_BLOG(LOG_INFO, "[VIDEO_DIMENSION] width %d height %d", m_width, m_height);
             }
@@ -311,7 +402,8 @@ void QuestVideoMngrImpl::VideoTickImpl(bool skipOldFrames)
 		                    OM_BLOG(LOG_DEBUG, "[%lf][VIDEO_DATA] size %d width %d height %d format %d", timePassed, packet->size, picture->width, picture->height, picture->format);
 	#endif
 
-		                    while (m_cachedAudioFrames.size() > 0 && m_cachedAudioFrames[0].first <= m_videoFrameIndex)
+                            clearMostRecentAudioFrameList();
+		                    while (m_cachedAudioFrames.size() > 0 /*&& m_cachedAudioFrames[0].first <= m_videoFrameIndex*/)
 		                    {
 		                        std::shared_ptr<Frame> audioFrame = m_cachedAudioFrames[0].second;
 
@@ -320,22 +412,29 @@ void QuestVideoMngrImpl::VideoTickImpl(bool skipOldFrames)
 		                            int channels;
 		                            int dataLength;
 		                        };
-		                        AudioDataHeader* audioDataHeader = (AudioDataHeader*)(audioFrame->m_payload.data());
+                                AudioDataHeader audioDataHeader;
+                                audioDataHeader.timestamp = convertBytesToUInt64(audioFrame->m_payload.data(), false);
+                                audioDataHeader.channels = convertBytesToInt32(audioFrame->m_payload.data() + 8, false);
+                                audioDataHeader.dataLength = convertBytesToInt32(audioFrame->m_payload.data() + 12, false);
 
-		                        if (audioDataHeader->channels == 1 || audioDataHeader->channels == 2)
+		                        if (audioDataHeader.channels == 1 || audioDataHeader.channels == 2)
 		                        {
 		                            /*obs_source_audio audio = { 0 };
-		                            audio.data[0] = (uint8_t*)audioFrame->m_payload.data() + sizeof(AudioDataHeader);
-		                            audio.frames = audioDataHeader->dataLength / sizeof(float) / audioDataHeader->channels;
-		                            audio.speakers = audioDataHeader->channels == 1 ? SPEAKERS_MONO : SPEAKERS_STEREO;
+		                            audio.data[0] = (uint8_t*)audioFrame.m_payload.data() + sizeof(AudioDataHeader);
+		                            audio.frames = audioDataHeader.dataLength / sizeof(float) / audioDataHeader.channels;
+		                            audio.speakers = audioDataHeader.channels == 1 ? SPEAKERS_MONO : SPEAKERS_STEREO;
 		                            audio.format = AUDIO_FORMAT_FLOAT;
 		                            audio.samples_per_sec = m_audioSampleRate;
-		                            audio.timestamp = audioDataHeader->timestamp;
+		                            audio.timestamp = audioDataHeader.timestamp;
 		                            obs_source_output_audio(m_src, &audio);*/
+                                    mostRecentAudioFrames.push_back(new QuestAudioDataImpl(audioDataHeader.timestamp, audioFrame->localTimestamp, audioDataHeader.channels, m_audioSampleRate, (uint8_t*)audioFrame->m_payload.data() + sizeof(AudioDataHeader), audioDataHeader.dataLength));
+                                    //FILE *debugTimestamp = fopen("debugTimestamp2.csv", "a");
+                                    //fprintf(debugTimestamp, "%llu,%llu\n", audioDataHeader.timestamp, audioFrame.localTimestamp);
+                                    //fclose(debugTimestamp);
 		                        }
 		                        else
 		                        {
-		                            OM_BLOG(LOG_ERROR, "[AUDIO_DATA] unimplemented audio channels %d", audioDataHeader->channels);
+		                            OM_BLOG(LOG_ERROR, "[AUDIO_DATA] unimplemented audio channels %d", audioDataHeader.channels);
 		                        }
 
 		                        m_cachedAudioFrames.erase(m_cachedAudioFrames.begin());
@@ -461,13 +560,22 @@ uint32_t QuestVideoMngrImpl::getHeight()//get img height
 }
 
 #ifdef LIBQUESTMR_USE_OPENCV
-cv::Mat QuestVideoMngrImpl::getMostRecentImg(uint64_t *timestamp)
+cv::Mat QuestVideoMngrImpl::getMostRecentImg(uint64_t *timestamp, int *frameId)
 {
 	if(timestamp != NULL)
 		*timestamp = mostRecentTimestamp;
+    if(frameId != NULL)
+        *frameId = m_videoFrameIndex;
 	return mostRecentImg;
 }
 #endif
+
+int QuestVideoMngrImpl::getMostRecentAudio(QuestAudioData*** listAudioData)
+{
+    *listAudioData = &mostRecentAudioFrames[0];
+    return (int)mostRecentAudioFrames.size();
+}
+
 
 void QuestVideoMngrImpl::attachSource(std::shared_ptr<QuestVideoSource> videoSource)
 {
@@ -484,7 +592,7 @@ void QuestVideoMngrImpl::attachSource(std::shared_ptr<QuestVideoSource> videoSou
 
 void QuestVideoMngrImpl::detachSource()
 {
-    if (videoSource == NULL || !videoSource->isValid())
+    if (videoSource == NULL)// || !videoSource->isValid())
     {
         OM_BLOG(LOG_ERROR, "Not connected");
         return;
@@ -541,6 +649,8 @@ void QuestVideoSourceFileImpl::open(const char *filename)
 
 int QuestVideoSourceFileImpl::recv(char *buf, size_t bufferSize)
 {
+    if(feof(file))
+        return 0;
     return static_cast<int>(::fread(buf, 1, bufferSize, file));
 }
 
@@ -615,6 +725,8 @@ public:
 		:mngr(mngr)
 	{
 		finished = false;
+        mostRecentTimestamp = 0;
+        mostRecentFrameId = -1;
 	}
 
     virtual ~QuestVideoMngrThreadDataImpl()
@@ -634,13 +746,17 @@ public:
     }
     
     #ifdef LIBQUESTMR_USE_OPENCV
-    virtual cv::Mat getMostRecentImg(uint64_t *timestamp)
+    virtual cv::Mat getMostRecentImg(uint64_t *timestamp, int *frameId = NULL)
     {
-        cv::Mat questImg;
+        cv::Mat img;
 		mutex.lock();
-		questImg = mngr->getMostRecentImg(timestamp).clone();
+		img = mostRecentImg;
+        if(timestamp != NULL)
+            *timestamp = mostRecentTimestamp;
+        if(frameId != NULL)
+            *frameId = mostRecentFrameId;
 		mutex.unlock();
-		return questImg;
+		return img;
     }
     #endif
     
@@ -648,16 +764,26 @@ public:
     {
         while(!isFinished())
 		{
-			mutex.lock();
 			mngr->VideoTickImpl();
-			mutex.unlock();
-            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+            uint64_t timestamp;
+            int frameId;
+            cv::Mat img = mngr->getMostRecentImg(&timestamp, &frameId);
+            if(frameId != mostRecentFrameId) {
+                mutex.lock();
+                mostRecentImg = img.clone();
+                mostRecentTimestamp = timestamp;
+                mostRecentFrameId = frameId;
+                mutex.unlock();
+            }
 		}
     }
 private:
     std::mutex mutex;
 	std::shared_ptr<QuestVideoMngr> mngr;
 	bool finished;
+    cv::Mat mostRecentImg;
+    uint64_t mostRecentTimestamp;
+    int mostRecentFrameId;
 };
 
 QuestVideoMngrThreadData::~QuestVideoMngrThreadData()
@@ -706,6 +832,44 @@ extern "C"
 	{
 		delete threadData;
 	}
+
+
+    bool loadQuestRecordedTimestamps(const char *filename, std::vector<uint64_t> *listTimestamp, std::vector<uint32_t> *listType, std::vector<uint32_t> *listSize)
+    {
+        if(listTimestamp != NULL)
+            listTimestamp->clear();
+        if(listType != NULL)
+            listType->clear();
+        if(listSize != NULL)
+            listSize->clear();
+        
+        std::ifstream input(filename);
+        if(!input.good())
+            return false;
+        std::string line;
+        while(std::getline(input, line))
+        {
+            uint64_t timestamp;
+            uint32_t type;
+            uint32_t size;
+            std::string timestampStr, typeStr, sizeStr;
+            std::istringstream str(line);
+            if(!std::getline(str, timestampStr, ',') || !std::getline(str, typeStr, ',') || !std::getline(str, sizeStr, ','))
+                break;
+
+            std::istringstream(timestampStr) >> timestamp;
+            std::istringstream(typeStr) >> type;
+            std::istringstream(sizeStr) >> size;
+            
+            if(listTimestamp != NULL)
+                listTimestamp->push_back(timestamp);
+            if(listType != NULL)
+                listType->push_back(type);
+            if(listSize != NULL)
+                listSize->push_back(size);
+        }
+        return true;
+    }
 }
 
 #ifdef LIBQUESTMR_USE_OPENCV

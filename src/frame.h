@@ -48,7 +48,7 @@ struct Frame
 		AUDIO_DATA = 13,
 	};
 	PayloadType m_type;
-	double m_secondsSinceEpoch;
+	//double m_secondsSinceEpoch;
     uint64_t localTimestamp;
 	std::vector<uint8_t> m_payload;
 };
@@ -64,6 +64,8 @@ public:
 	~FrameCollection();
 	FrameCollection(FrameCollection const&) = delete;
     FrameCollection& operator=(FrameCollection const&) = delete;
+    
+    FrameHeader readFrameHeader(unsigned char *data) const;
 
 	void Reset();
 
