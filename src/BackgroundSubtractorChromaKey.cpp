@@ -82,7 +82,7 @@ public:
             if(useYCrCb) {
                 getParameterValAsYCrCb("backgroundColor", &backgroundCol1, &backgroundCol2, &backgroundCol3);
             } else {
-                getParameterValAsRGB("backgroundColor", &backgroundCol1, &backgroundCol2, &backgroundCol3);
+                getParameterValAsRGB("backgroundColor", &backgroundCol3, &backgroundCol2, &backgroundCol1);
             }
         }
         if(softThresh <= hardThresh)
