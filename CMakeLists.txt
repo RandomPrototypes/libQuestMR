@@ -28,7 +28,7 @@ option(BUILD_DEMO "Build DEMO" ON)
 option(USE_OPENCV "Use OpenCV" ON)
 option(USE_RPCameraInterface "Use RPCameraInterface" ON)
 option(USE_FFMPEG "Use FFMPEG" ON)
-option(USE_ONNX_RUNTIME "Use ONNX Runtime" OFF)
+option(USE_ONNX_RUNTIME "Use ONNX Runtime" ON)
 option(DEBUG_OCULUS_MRC_SOURCE "Debug Oculus MRC Source" OFF)
 
 if(USE_ONNX_RUNTIME)
