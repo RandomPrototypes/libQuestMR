@@ -124,6 +124,6 @@ LIBQUESTMR_INSTALL_DIR=$BASE_FOLDER/install
 ln -sfn $ONNX_RUNTIME_DIR/lib/libonnxruntime.so.1.10.0 $LIBQUESTMR_INSTALL_DIR/lib/libonnxruntime.so.1.10.0
 ln -sfn $LIBQUESTMR_INSTALL_DIR/lib/libonnxruntime.so.1.10.0 $LIBQUESTMR_INSTALL_DIR/lib/libonnxruntime.so
 if [ $USE_CUDA = 1 ]; then
-	ln -sfn $LIBQUESTMR_INSTALL_DIR/lib/libonnxruntime_providers_cuda.so $LIBQUESTMR_INSTALL_DIR/lib/libonnxruntime_providers_cuda.so
-	ln -sfn $LIBQUESTMR_INSTALL_DIR/lib/libonnxruntime_providers_shared.so $LIBQUESTMR_INSTALL_DIR/lib/libonnxruntime_providers_shared.so
+	ln -sfn $ONNX_RUNTIME_DIR/lib/libonnxruntime_providers_cuda.so $LIBQUESTMR_INSTALL_DIR/lib/libonnxruntime_providers_cuda.so
+	ln -sfn $ONNX_RUNTIME_DIR/lib/libonnxruntime_providers_shared.so $LIBQUESTMR_INSTALL_DIR/lib/libonnxruntime_providers_shared.so
 fi
