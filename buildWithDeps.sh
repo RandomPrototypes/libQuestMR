@@ -71,6 +71,7 @@ CUSTOM_CMAKE=$DEPS_FOLDER/cmake-3.22.3/install/bin/cmake
 cd $DEPS_FOLDER
 git clone --recursive --branch $onnxruntime_branch https://github.com/Microsoft/onnxruntime
 cd onnxruntime
+git pull
 mkdir install
 if [ $USE_CUDA = 1 ]; then
 	./build.sh --cmake_path $CUSTOM_CMAKE --cuda_home $CUDA_HOME --cudnn_home $CUDNN_HOME --use_cuda --config $BUILD_TYPE --build_shared_lib --skip_tests --parallel 8 || exit 1
@@ -85,6 +86,7 @@ ONNX_RUNTIME_DIR=$DEPS_FOLDER/onnxruntime/install/usr/local
 cd $DEPS_FOLDER
 git clone --branch $BufferedSocket_branch https://github.com/RandomPrototypes/BufferedSocket.git
 cd $DEPS_FOLDER/BufferedSocket
+git pull
 mkdir build
 mkdir install
 cd build
@@ -98,6 +100,7 @@ BUFFERED_SOCKET_CMAKE_DIR=$DEPS_FOLDER/BufferedSocket/install/lib/cmake/Buffered
 cd $DEPS_FOLDER
 git clone --branch $RPCameraInterface_branch https://github.com/RandomPrototypes/RPCameraInterface.git
 cd RPCameraInterface
+git pull
 mkdir build
 mkdir install
 cd build
