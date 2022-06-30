@@ -393,8 +393,12 @@ std::vector<std::pair<std::string, BackgroundSubtractorFnPtr> > getBackgroundSub
     list.push_back(std::make_pair("ChromaKey_RGB", [](){ return createBackgroundSubtractorChromaKeyRawPtr(22, 35, true, false, 0, 255, 0);}));
     list.push_back(std::make_pair("DiffFirstFrame_CrCb", [](){ return createBackgroundSubtractorChromaKeyRawPtr(22, 35, false, true, 0, 0, 0);}));
     list.push_back(std::make_pair("DiffFirstFrame_RGB", [](){ return createBackgroundSubtractorChromaKeyRawPtr(22, 35, false, false, 0, 0, 0);}));
-    list.push_back(std::make_pair("ONNX_RobustVideoMatting", [](){ return createBackgroundSubtractorRobustVideoMattingONNXRawPtr((backgroundSubtractorResourceFolder+"/rvm_mobilenetv3_fp32.onnx").c_str(), false);}));
-    list.push_back(std::make_pair("ONNX_RobustVideoMatting_CUDA", [](){ return createBackgroundSubtractorRobustVideoMattingONNXRawPtr((backgroundSubtractorResourceFolder+"/rvm_mobilenetv3_fp32.onnx").c_str(), true);}));
+    #ifdef USE_ONNX_RUNTIME
+        list.push_back(std::make_pair("ONNX_RobustVideoMatting", [](){ return createBackgroundSubtractorRobustVideoMattingONNXRawPtr((backgroundSubtractorResourceFolder+"/rvm_mobilenetv3_fp32.onnx").c_str(), false);}));
+        #if defined(USE_ONNX_RUNTIME_CUDA) || defined(USE_ONNX_RUNTIME_DIRECTML) 
+            list.push_back(std::make_pair("ONNX_RobustVideoMatting_GPU", [](){ return createBackgroundSubtractorRobustVideoMattingONNXRawPtr((backgroundSubtractorResourceFolder+"/rvm_mobilenetv3_fp32.onnx").c_str(), true);}));
+        #endif
+    #endif
     return list;
 }
 

@@ -1,6 +1,10 @@
 #include <libQuestMR/BackgroundSubtractor.h>
 #ifdef USE_ONNX_RUNTIME
-#include <onnxruntime_cxx_api.h>
+    #include <onnxruntime_cxx_api.h>
+    
+    #ifdef USE_ONNX_RUNTIME_DIRECTML
+        #include <dml_provider_factory.h>
+    #endif
 #endif
 
 #ifdef LIBQUESTMR_USE_OPENCV
@@ -14,7 +18,7 @@ namespace libQuestMR
 class BackgroundSubtractorRobustVideoMattingONNX : public BackgroundSubtractorBase
 {
 public:
-    BackgroundSubtractorRobustVideoMattingONNX(const char *onnxModelFilename, bool use_CUDA)
+    BackgroundSubtractorRobustVideoMattingONNX(const char *onnxModelFilename, bool use_GPU)
         :memoryInfo(nullptr), memoryInfoCuda(nullptr), src_tensor(nullptr), downsample_ratio_tensor(nullptr), r1i(nullptr)
     {
         firstFrame = true;
@@ -27,9 +31,15 @@ public:
         sessionOptions.SetIntraOpNumThreads(1);
         
         //activates the CUDA backend
-        if(use_CUDA) {
-            OrtCUDAProviderOptions cuda_options;
-            sessionOptions.AppendExecutionProvider_CUDA(cuda_options);
+        if(use_GPU) {
+            #if defined(USE_ONNX_RUNTIME_CUDA)
+                OrtCUDAProviderOptions cuda_options;
+                sessionOptions.AppendExecutionProvider_CUDA(cuda_options);
+            #elif defined(USE_ONNX_RUNTIME_DIRECTML)
+                OrtSessionOptionsAppendExecutionProvider_DML(sessionOptions, 0);
+                sessionOptions.DisableMemPattern();
+                sessionOptions.SetExecutionMode(ExecutionMode::ORT_SEQUENTIAL);
+            #endif
         }
         sessionOptions.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);
         #ifdef _WIN32
@@ -148,15 +158,15 @@ private:
     Ort::Value r1i;
 };
 
-LQMR_EXPORTS BackgroundSubtractor *createBackgroundSubtractorRobustVideoMattingONNXRawPtr(const char *onnxModelFilename, bool use_CUDA)
+LQMR_EXPORTS BackgroundSubtractor *createBackgroundSubtractorRobustVideoMattingONNXRawPtr(const char *onnxModelFilename, bool use_GPU)
 {
-    return new BackgroundSubtractorRobustVideoMattingONNX(onnxModelFilename, use_CUDA);
+    return new BackgroundSubtractorRobustVideoMattingONNX(onnxModelFilename, use_GPU);
 }
 
 #else
-LQMR_EXPORTS BackgroundSubtractor *createBackgroundSubtractorRobustVideoMattingONNXRawPtr(const char *onnxModelFilename, bool use_CUDA)
+LQMR_EXPORTS BackgroundSubtractor *createBackgroundSubtractorRobustVideoMattingONNXRawPtr(const char *onnxModelFilename, bool use_GPU)
 {
-    printf("BackgroundSubtractorRobustVideoMattingONNX unavailable, rebuild with OONX runtime\n");
+    printf("BackgroundSubtractorRobustVideoMattingONNX unavailable, rebuild with ONNX runtime\n");
     return NULL;
 }
 
