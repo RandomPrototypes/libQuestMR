@@ -38,6 +38,11 @@ Video encoding/decoding is managed by [FFMPEG](https://github.com/FFmpeg/FFmpeg)
 
 [onnx-runtime](https://github.com/microsoft/onnxruntime) is a recommended but optional dependency. It's used to run the deep learning method for background subtraction without greenscreen.
 
+### Background subtraction without greenscreen
+
+To use the deep learning background subtraction method, you need to download rvm_mobilenetv3_fp32.onnx from [RobustVideoMatting](https://github.com/PeterL1n/RobustVideoMatting/) project and specify the folder with the command setBackgroundSubtractorResourceFolder().  
+Please check the license of this file before using it in your project.  
+
 ### Credits
 A part of the code is based on the official [OBS plugin for Quest 2](https://github.com/facebookincubator/obs-plugins).  
 Most of the rest of the code is based on wireshark captures and some reading of the code of [RealityMixer](https://github.com/fabio914/RealityMixer)
