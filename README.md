@@ -17,12 +17,10 @@ Already implemented :
 * Extraction and decoding of the frames from the headset
 * Recording and playback of the frames from the headset
 * Windows, Linux, Macos support
-
-Still testing :
 * Video matting without greenscreen
+* Audio recording
 
 Future plan :
-* Audio recording
 * Moving camera
 * Body tracking
 * Android, iphone, maybe raspberry pi support (the code is portable but the makefiles probably need to be modified)
@@ -37,6 +35,11 @@ Video encoding/decoding is managed by [FFMPEG](https://github.com/FFmpeg/FFmpeg)
 [OpenCV](https://github.com/opencv/opencv) is a recommended dependency. Some parts of the project can work without it but many functions including the calibration and visualization would be disabled if compiled without OpenCV.  
 
 [RPMixedRealityCapture](https://github.com/RandomPrototypes/RPMixedRealityCapture) is a recommended but optional dependency. It's a portable camera library I made to support some functions that were not available in OpenCV : camera enumeration, camera formats and resolution enumeration, MJPEG streaming, network camera (android phone with custom app,...).
+
+### Background subtraction without greenscreen
+
+To use the deep learning background subtraction method, you need to download rvm_mobilenetv3_fp32.onnx from [RobustVideoMatting](https://github.com/PeterL1n/RobustVideoMatting/) project and specify the folder with the command setBackgroundSubtractorResourceFolder().  
+Please check the license of this file before using it in your project.  
 
 
 ### Credits
