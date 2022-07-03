@@ -60,6 +60,8 @@ public:
     void setCameraMatrix(const cv::Mat& K);
     cv::Mat getDistCoeffs() const;
     void setDistCoeffs(const cv::Mat& distCoeffs);
+    cv::Size getImageSize() const;
+    void setImageSize(cv::Size size);
     cv::Mat getTranslation() const;
     cv::Mat getRotation() const;
     cv::Mat getRawTranslation() const;
@@ -73,7 +75,11 @@ public:
     double calcReprojectionError(const std::vector<cv::Point3d>& listPoint3d, const std::vector<cv::Point2d>& listPoint2d) const;
 
     bool calibrateCamPose(const std::vector<cv::Point3d>& listPoint3d, const std::vector<cv::Point2d>& listPoint2d);
-    bool calibrateCamIntrinsicAndPose(const std::vector<cv::Point3d>& listPoint3d, const std::vector<cv::Point2d>& listPoint2d, cv::Size imgSize, bool print_fov_results = false);
+    bool calibrateCamPose(cv::Point3d camOrig, const std::vector<cv::Point3d>& listPoint3d, const std::vector<cv::Point2d>& listPoint2d);
+
+    bool calibrateCamIntrinsicAndPose(const std::vector<cv::Point3d>& listPoint3d, const std::vector<cv::Point2d>& listPoint2d, bool print_fov_results = false);
+    bool calibrateCamIntrinsicAndPose(cv::Point3d camOrig, const std::vector<cv::Point3d>& listPoint3d, const std::vector<cv::Point2d>& listPoint2d, bool print_fov_results = false);
+
 #endif
 
 private:
@@ -86,5 +92,11 @@ LQMR_EXPORTS cv::Mat quaternion2rotationMat(const cv::Mat& quaternion);
 //from 4x1 (x,y,z,w) quaternion mat to 3x1 rodrigues mat.
 //TODO : not tested, need to verify if this works properly
 LQMR_EXPORTS cv::Mat quaternion2rvec(const cv::Mat& quaternion);
+
+LQMR_EXPORTS cv::Mat eulerAnglesToRotationMatrix(cv::Vec3f &theta);
+
+LQMR_EXPORTS cv::Mat estimateRotation3D(const std::vector<cv::Point3d>& A, const std::vector<cv::Point3d>& B);
+
+LQMR_EXPORTS double testRotationEstimation();
 #endif
 }
