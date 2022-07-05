@@ -566,7 +566,7 @@ cv::Mat estimateRotation3D(const std::vector<cv::Point3d>& A, const std::vector<
     return R;
 }
 
-cv::Mat eulerAnglesToRotationMatrix(cv::Vec3f &theta)
+cv::Mat eulerAnglesToRotationMatrix(const cv::Vec3f &theta)
 {
     // Calculate rotation about x axis
     cv::Mat R_x = (cv::Mat_<double>(3,3) <<

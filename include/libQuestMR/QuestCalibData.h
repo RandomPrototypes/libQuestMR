@@ -93,7 +93,7 @@ LQMR_EXPORTS cv::Mat quaternion2rotationMat(const cv::Mat& quaternion);
 //TODO : not tested, need to verify if this works properly
 LQMR_EXPORTS cv::Mat quaternion2rvec(const cv::Mat& quaternion);
 
-LQMR_EXPORTS cv::Mat eulerAnglesToRotationMatrix(cv::Vec3f &theta);
+LQMR_EXPORTS cv::Mat eulerAnglesToRotationMatrix(const cv::Vec3f &theta);
 
 LQMR_EXPORTS cv::Mat estimateRotation3D(const std::vector<cv::Point3d>& A, const std::vector<cv::Point3d>& B);
 
