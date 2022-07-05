@@ -135,7 +135,10 @@ void captureAndCalibrateExtrinsic(const char *ipAddr, const char *calibFilename,
 		}
 		listPoints2D.push_back(cv::Point2d(cvRound(mouseData.x / ratio), cvRound(mouseData.y / ratio)));
 	}
-	
+	for(int i = 0; i < 3; i++)
+		calibData.raw_translation[i] = frameData.raw_pos[i];
+	for(int i = 0; i < 4; i++)
+		calibData.raw_rotation[i] = frameData.raw_rot[i];
 	calibData.calibrateCamPose(listRightHandPos, listPoints2D);
 
 	std::string xmlStr = calibData.generateXMLString().str();

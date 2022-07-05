@@ -423,6 +423,8 @@ cv::Mat QuestCalibData::getCameraMatrix() const { return vec2mat(camera_matrix, 
 void    QuestCalibData::setCameraMatrix(const cv::Mat& K) { mat2vec<double>(K, camera_matrix, 9); }
 cv::Mat QuestCalibData::getDistCoeffs() const { return vec2mat(distortion_coefficients, 8, 1); }
 void    QuestCalibData::setDistCoeffs(const cv::Mat& distCoeffs) { mat2vec<double>(distCoeffs, distortion_coefficients, 8); }
+cv::Size QuestCalibData::getImageSize() const { return cv::Size(image_width, image_height); }
+void     QuestCalibData::setImageSize(cv::Size size) { image_width = size.width; image_height = size.height; }
 cv::Mat QuestCalibData::getTranslation() const { return vec2mat(translation, 3, 1); }
 cv::Mat QuestCalibData::getRotation() const { return vec2mat(rotation, 4, 1); }
 cv::Mat QuestCalibData::getRawTranslation() const { return vec2mat(raw_translation, 3, 1); }
@@ -509,14 +511,14 @@ double QuestCalibData::calcReprojectionError(const std::vector<cv::Point3d>& lis
     return reproj_error;
 }
 
-bool QuestCalibData::calibrateCamIntrinsicAndPose(const std::vector<cv::Point3d>& listPoint3d, const std::vector<cv::Point2d>& listPoint2d, cv::Size imgSize, bool print_fov_results)
+bool QuestCalibData::calibrateCamIntrinsicAndPose(const std::vector<cv::Point3d>& listPoint3d, const std::vector<cv::Point2d>& listPoint2d, bool print_fov_results)
 {
 	double best_fov = 30*CV_PI/180;
 	double best_reproj = std::numeric_limits<double>::max();
 	for(double fov_deg = 30; fov_deg < 170; fov_deg += 1) 
 	{
 		double fov = fov_deg * CV_PI / 180;
-		setCameraFromSizeAndFOV(fov, imgSize.width, imgSize.height);
+		setCameraFromSizeAndFOV(fov, image_width, image_height);
 		calibrateCamPose(listPoint3d, listPoint2d);
 		double reproj_error = calcReprojectionError(listPoint3d, listPoint2d);
 		if(reproj_error < best_reproj) {
@@ -527,8 +529,159 @@ bool QuestCalibData::calibrateCamIntrinsicAndPose(const std::vector<cv::Point3d>
 		    printf("fov %lf deg : err %lf\n", fov_deg, reproj_error);
 	}
     
-	setCameraFromSizeAndFOV(best_fov, imgSize.width, imgSize.height);
+	setCameraFromSizeAndFOV(best_fov, image_width, image_height);
 	bool res = calibrateCamPose(listPoint3d, listPoint2d);
+    if(print_fov_results)
+        printf("best fov: %lf deg : err %lf\n", best_fov * 180 / CV_PI, calcReprojectionError(listPoint3d, listPoint2d));
+    return res;
+}
+
+//return R such that B = R*A
+cv::Mat estimateRotation3D(const std::vector<cv::Point3d>& A, const std::vector<cv::Point3d>& B)
+{
+    cv::Mat H = cv::Mat::zeros(3,3,CV_64F);
+    double *H_ptr = H.ptr<double>(0);
+    for(size_t k = 0; k < A.size(); k++) {
+        H_ptr[0] += A[k].x * B[k].x;
+        H_ptr[1] += A[k].x * B[k].y;
+        H_ptr[2] += A[k].x * B[k].z;
+        H_ptr[3] += A[k].y * B[k].x;
+        H_ptr[4] += A[k].y * B[k].y;
+        H_ptr[5] += A[k].y * B[k].z;
+        H_ptr[6] += A[k].z * B[k].x;
+        H_ptr[7] += A[k].z * B[k].y;
+        H_ptr[8] += A[k].z * B[k].z;
+    }
+    cv::Mat w, u, vt;
+    cv::SVD::compute(H, w, u, vt);
+    cv::Mat R = vt.t() * u.t();
+
+    if(cv::determinant(R) < 0) {
+        vt.at<double>(2,0) *= -1;
+        vt.at<double>(2,1) *= -1;
+        vt.at<double>(2,2) *= -1;
+        R = vt.t() * u.t();
+    }
+
+    return R;
+}
+
+cv::Mat eulerAnglesToRotationMatrix(const cv::Vec3f &theta)
+{
+    // Calculate rotation about x axis
+    cv::Mat R_x = (cv::Mat_<double>(3,3) <<
+               1,       0,              0,
+               0,       cos(theta[0]),   -sin(theta[0]),
+               0,       sin(theta[0]),   cos(theta[0])
+               );
+
+    // Calculate rotation about y axis
+    cv::Mat R_y = (cv::Mat_<double>(3,3) <<
+               cos(theta[1]),    0,      sin(theta[1]),
+               0,               1,      0,
+               -sin(theta[1]),   0,      cos(theta[1])
+               );
+
+    // Calculate rotation about z axis
+    cv::Mat R_z = (cv::Mat_<double>(3,3) <<
+               cos(theta[2]),    -sin(theta[2]),      0,
+               sin(theta[2]),    cos(theta[2]),       0,
+               0,               0,                  1);
+
+    // Combined rotation matrix
+    cv::Mat R = R_z * R_y * R_x;
+
+    return R;
+
+}
+
+double testRotationEstimation()
+{
+    std::vector<cv::Point3d> A(5);
+    for(size_t i = 0; i < A.size(); i++) {
+        A[i] = cv::Point3d((rand()%1000)/100.0 - 5.0, (rand()%1000)/100.0 - 5.0, (rand()%1000)/100.0 - 5.0);
+        A[i] /= sqrt(A[i].dot(A[i]));
+    }
+    cv::Mat R = eulerAnglesToRotationMatrix(cv::Vec3f(rand(), rand(), rand()));
+    double *R_ptr = R.ptr<double>(0);
+    std::vector<cv::Point3d> B(A.size());
+    for(size_t i = 0; i < A.size(); i++) {
+        B[i].x = R_ptr[0] * A[i].x + R_ptr[1] * A[i].y + R_ptr[2] * A[i].z;
+        B[i].y = R_ptr[3] * A[i].x + R_ptr[4] * A[i].y + R_ptr[5] * A[i].z;
+        B[i].z = R_ptr[6] * A[i].x + R_ptr[7] * A[i].y + R_ptr[8] * A[i].z;
+    }
+    cv::Mat R2 = estimateRotation3D(A, B);
+    std::vector<cv::Point3d> C(A.size());
+    R_ptr = R2.ptr<double>(0);
+    for(size_t i = 0; i < A.size(); i++) {
+        C[i].x = R_ptr[0] * A[i].x + R_ptr[1] * A[i].y + R_ptr[2] * A[i].z;
+        C[i].y = R_ptr[3] * A[i].x + R_ptr[4] * A[i].y + R_ptr[5] * A[i].z;
+        C[i].z = R_ptr[6] * A[i].x + R_ptr[7] * A[i].y + R_ptr[8] * A[i].z;
+    }
+
+    double total_error = 0;
+    for(size_t i = 0; i < A.size(); i++)
+    {
+        cv::Point3d delta = B[i] - C[i];
+        double diff = sqrt(delta.dot(delta));
+        //printf("%lf\n", diff);
+        total_error += diff;
+    }
+    return total_error;
+}
+
+bool QuestCalibData::calibrateCamPose(cv::Point3d camOrig, const std::vector<cv::Point3d>& listPoint3d, const std::vector<cv::Point2d>& listPoint2d)
+{
+    //z * (listPoint2d[i].x, listPoint2d[i].y, 1) = K * R * (listPoint3d[i] - camOrig)
+    //K^-1 * z * (listPoint2d[i].x, listPoint2d[i].y, 1) = R * (listPoint3d[i] - camOrig)
+    //normalize(K^-1 * z * (listPoint2d[i].x, listPoint2d[i].y, 1)) = R * normalize(listPoint3d[i] - camOrig)
+    //normalize(K^-1 * (listPoint2d[i].x, listPoint2d[i].y, 1)) = R * normalize(listPoint3d[i] - camOrig)
+    std::vector<cv::Point3d> ray(listPoint3d.size()), p3d(listPoint3d.size());
+    cv::Mat K_inv = (getFlipXMat()*getCameraMatrix()).inv();
+    const double *K_inv_ptr = K_inv.ptr<double>(0);
+    for(size_t i = 0; i < listPoint2d.size(); i++) {
+        ray[i].x = K_inv_ptr[0] * listPoint2d[i].x + K_inv_ptr[2];
+        ray[i].y = K_inv_ptr[4] * listPoint2d[i].y + K_inv_ptr[5];
+        ray[i].z = 1;
+        ray[i] *= -1.0 / sqrt(ray[i].dot(ray[i]));
+    }
+    for(size_t i = 0; i < listPoint3d.size(); i++) {
+        p3d[i] = listPoint3d[i] - camOrig;
+        p3d[i] /= sqrt(p3d[i].dot(p3d[i]));
+    }
+    cv::Mat R = estimateRotation3D(p3d, ray);
+    cv::Mat tvec = -R*cv::Vec3d(camOrig.x, camOrig.y, camOrig.z);
+    cv::Mat rvec;
+    cv::Rodrigues(R, rvec);
+    cv::Mat Rt = vec2RtMat(rvec, tvec);
+    cv::Mat Rt_inv = Rt.inv();
+    cv::Mat rot = rotationMat2quaternion(Rt_inv(cv::Rect(0,0,3,3)));
+    for(int i = 0; i < 4; i++)
+        rotation[i] = rot.at<double>(i,0);
+    mat2vec<double>(Rt_inv(cv::Rect(3,0,1,3)), translation, 3);
+    return true;
+}
+
+bool QuestCalibData::calibrateCamIntrinsicAndPose(cv::Point3d camOrig, const std::vector<cv::Point3d>& listPoint3d, const std::vector<cv::Point2d>& listPoint2d, bool print_fov_results)
+{
+	double best_fov = 30*CV_PI/180;
+	double best_reproj = std::numeric_limits<double>::max();
+	for(double fov_deg = 30; fov_deg < 170; fov_deg += 1) 
+	{
+		double fov = fov_deg * CV_PI / 180;
+		setCameraFromSizeAndFOV(fov, image_width, image_height);
+		calibrateCamPose(camOrig, listPoint3d, listPoint2d);
+		double reproj_error = calcReprojectionError(listPoint3d, listPoint2d);
+		if(reproj_error < best_reproj) {
+			best_reproj = reproj_error;
+			best_fov = fov;
+		}
+        if(print_fov_results)
+		    printf("fov %lf deg : err %lf\n", fov_deg, reproj_error);
+	}
+    
+	setCameraFromSizeAndFOV(best_fov, image_width, image_height);
+	bool res = calibrateCamPose(camOrig, listPoint3d, listPoint2d);
     if(print_fov_results)
         printf("best fov: %lf deg : err %lf\n", best_fov * 180 / CV_PI, calcReprojectionError(listPoint3d, listPoint2d));
     return res;
