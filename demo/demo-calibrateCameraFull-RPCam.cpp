@@ -140,6 +140,10 @@ void captureAndCalibrateFull(const char *ipAddr, const char *outputFilename)
 	
 	QuestCalibData calibData;
 	calibData.setImageSize(listImg[0].size());
+	for(int i = 0; i < 3; i++)
+		calibData.raw_translation[i] = frameData.raw_pos[i];
+	for(int i = 0; i < 4; i++)
+		calibData.raw_rotation[i] = frameData.raw_rot[i];
 	calibData.calibrateCamIntrinsicAndPose(listRightHandPos, listPoints2D, true);
 
 	std::string xmlStr = calibData.generateXMLString().str();
