@@ -40,7 +40,7 @@ CUDNN_HOME=/usr/lib/x86_64-linux-gnu/
 
 BUILD_TYPE=Release
 
-declare -a listPkg=("build-essential" "git" "libopencv-dev" "libavdevice-dev" "libavfilter-dev" "libavformat-dev" "libavcodec-dev" "libswresample-dev" "libswscale-dev" "libavutil-dev")
+declare -a listPkg=("build-essential" "git" "libopencv-dev" "libavdevice-dev" "libavfilter-dev" "libavformat-dev" "libavcodec-dev" "libswresample-dev" "libswscale-dev" "libavutil-dev" "libssl-dev")
 
 #install package dependencies
 for pkgname in "${listPkg[@]}"
