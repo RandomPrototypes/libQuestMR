@@ -13,11 +13,38 @@ has_pkg()
 	fi
 }
 
+#from https://unix.stackexchange.com/questions/6/what-are-your-favorite-command-line-features-or-tricks/168#168
+extract()
+{
+    if [ -f $1 ] ; then
+        case $1 in
+            *.tar.bz2)  tar xjf $1      ;;
+            *.tar.gz)   tar xzf $1      ;;
+            *.bz2)      bunzip2 $1      ;;
+            *.rar)      rar x $1        ;;
+            *.gz)       gunzip $1       ;;
+            *.tar)      tar xf $1       ;;
+            *.tbz2)     tar xjf $1      ;;
+            *.tgz)      tar xzf $1      ;;
+            *.zip)      unzip $1        ;;
+            *.Z)        uncompress $1   ;;
+            *)          echo "'$1' cannot be extracted via extract()" ;;
+        esac
+    else
+        echo "'$1' is not a valid file"
+    fi
+}
+
 USE_CUDA=0
+BUILD_ONNXRUNTIME=0
 for i in "$@"; do
   case $i in
     --cuda)
       USE_CUDA=1
+      shift # past argument with no value
+      ;;
+    --build_onnxruntime)
+      BUILD_ONNXRUNTIME=1
       shift # past argument with no value
       ;;
     -*|--*)
@@ -54,33 +81,44 @@ do
 	fi
 done
 
-#install cmake v3.22.3
-cd $DEPS_FOLDER
-rm cmake-3.22.3.tar.gz*
-wget https://github.com/Kitware/CMake/releases/download/v3.22.3/cmake-3.22.3.tar.gz
-tar -xf cmake-3.22.3.tar.gz
-cd cmake-3.22.3
-mkdir install
-./bootstrap --prefix=install
-make -j8 || exit 1
-make install || exit 1
-CUSTOM_CMAKE=$DEPS_FOLDER/cmake-3.22.3/install/bin/cmake
+if [ $BUILD_ONNXRUNTIME = 1 ]; then
+	#install cmake v3.22.3
+	cd $DEPS_FOLDER
+	rm cmake-3.22.3.tar.gz*
+	wget https://github.com/Kitware/CMake/releases/download/v3.22.3/cmake-3.22.3.tar.gz
+	tar -xf cmake-3.22.3.tar.gz
+	cd cmake-3.22.3
+	mkdir install
+	./bootstrap --prefix=install
+	make -j8 || exit 1
+	make install || exit 1
+	CUSTOM_CMAKE=$DEPS_FOLDER/cmake-3.22.3/install/bin/cmake
 
 
-#install onnxruntime
-cd $DEPS_FOLDER
-git clone --recursive --branch $onnxruntime_branch https://github.com/Microsoft/onnxruntime
-cd onnxruntime
-git pull
-mkdir install
-if [ $USE_CUDA = 1 ]; then
-	./build.sh --cmake_path $CUSTOM_CMAKE --cuda_home $CUDA_HOME --cudnn_home $CUDNN_HOME --use_cuda --config $BUILD_TYPE --build_shared_lib --skip_tests --parallel 8 || exit 1
+	#install onnxruntime
+	cd $DEPS_FOLDER
+	git clone --recursive --branch $onnxruntime_branch https://github.com/Microsoft/onnxruntime
+	cd onnxruntime
+	git pull
+	mkdir install
+	if [ $USE_CUDA = 1 ]; then
+		./build.sh --cmake_path $CUSTOM_CMAKE --cuda_home $CUDA_HOME --cudnn_home $CUDNN_HOME --use_cuda --config $BUILD_TYPE --build_shared_lib --skip_tests --parallel 8 || exit 1
+	else
+		./build.sh --cmake_path $CUSTOM_CMAKE --config $BUILD_TYPE --build_shared_lib --skip_tests --parallel 8 || exit 1
+	fi
+	cd build/Linux/$BUILD_TYPE
+	make DESTDIR=$DEPS_FOLDER/onnxruntime/install install
+	ONNX_RUNTIME_DIR=$DEPS_FOLDER/onnxruntime/install/usr/local
+	ONNX_RUNTIME_SESSION_INCLUDE_DIRS=$ONNX_RUNTIME_DIR/include/onnxruntime/core/session
 else
-	./build.sh --cmake_path $CUSTOM_CMAKE --config $BUILD_TYPE --build_shared_lib --skip_tests --parallel 8 || exit 1
+	cd $DEPS_FOLDER
+	wget $onnxruntime_precompiled_archive
+	onnxruntime_archive_name=$(basename $onnxruntime_precompiled_archive)
+	$(extract $onnxruntime_archive_name)
+	ONNX_RUNTIME_DIR=$DEPS_FOLDER/$onnxruntime_precompiled_folder
+	ONNX_RUNTIME_SESSION_INCLUDE_DIRS=$ONNX_RUNTIME_DIR/include
+	CUSTOM_CMAKE=cmake
 fi
-cd build/Linux/$BUILD_TYPE
-make DESTDIR=$DEPS_FOLDER/onnxruntime/install install
-ONNX_RUNTIME_DIR=$DEPS_FOLDER/onnxruntime/install/usr/local
 
 #install BufferedSocket
 cd $DEPS_FOLDER
@@ -115,7 +153,7 @@ mkdir build
 mkdir install
 rm -r install/*
 cd build
-$CUSTOM_CMAKE -DCMAKE_INSTALL_PREFIX=../install -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUSE_FFMPEG=ON -DUSE_OPENCV=ON -DUSE_RPCameraInterface=ON -DUSE_ONNX_RUNTIME=ON -DUSE_ONNX_RUNTIME_CUDA=ON -DBufferedSocket_DIR=$BUFFERED_SOCKET_CMAKE_DIR -DRPCameraInterface_DIR=$RP_CAMERA_INTERFACE_CMAKE_DIR -DONNX_RUNTIME_LIB=$ONNX_RUNTIME_DIR/lib/libonnxruntime.so -DONNX_RUNTIME_SESSION_INCLUDE_DIRS=$ONNX_RUNTIME_DIR/include/onnxruntime/core/session .. || exit 1
+$CUSTOM_CMAKE -DCMAKE_INSTALL_PREFIX=../install -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUSE_FFMPEG=ON -DUSE_OPENCV=ON -DUSE_RPCameraInterface=ON -DUSE_ONNX_RUNTIME=ON -DUSE_ONNX_RUNTIME_CUDA=ON -DBufferedSocket_DIR=$BUFFERED_SOCKET_CMAKE_DIR -DRPCameraInterface_DIR=$RP_CAMERA_INTERFACE_CMAKE_DIR -DONNX_RUNTIME_LIB=$ONNX_RUNTIME_DIR/lib/libonnxruntime.so -DONNX_RUNTIME_SESSION_INCLUDE_DIRS=$ONNX_RUNTIME_SESSION_INCLUDE_DIRS .. || exit 1
 make -j8 || exit 1
 make install || exit 1
 LIBQUESTMR_INSTALL_DIR=$BASE_FOLDER/install
