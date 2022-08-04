@@ -37,6 +37,7 @@ extract()
 
 USE_CUDA=0
 BUILD_ONNXRUNTIME=0
+BUILD_DEMO=ON
 for i in "$@"; do
   case $i in
     --cuda)
@@ -45,6 +46,10 @@ for i in "$@"; do
       ;;
     --build_onnxruntime)
       BUILD_ONNXRUNTIME=1
+      shift # past argument with no value
+      ;;
+    --no_demo)
+      BUILD_DEMO=OFF
       shift # past argument with no value
       ;;
     -*|--*)
@@ -153,7 +158,7 @@ mkdir build
 mkdir install
 rm -r install/*
 cd build
-$CUSTOM_CMAKE -DCMAKE_INSTALL_PREFIX=../install -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUSE_FFMPEG=ON -DUSE_OPENCV=ON -DUSE_RPCameraInterface=ON -DUSE_ONNX_RUNTIME=ON -DUSE_ONNX_RUNTIME_CUDA=ON -DBufferedSocket_DIR=$BUFFERED_SOCKET_CMAKE_DIR -DRPCameraInterface_DIR=$RP_CAMERA_INTERFACE_CMAKE_DIR -DONNX_RUNTIME_LIB=$ONNX_RUNTIME_DIR/lib/libonnxruntime.so -DONNX_RUNTIME_SESSION_INCLUDE_DIRS=$ONNX_RUNTIME_SESSION_INCLUDE_DIRS .. || exit 1
+$CUSTOM_CMAKE -DCMAKE_INSTALL_PREFIX=../install -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUSE_FFMPEG=ON -DUSE_OPENCV=ON -DUSE_RPCameraInterface=ON -DUSE_ONNX_RUNTIME=ON -DUSE_ONNX_RUNTIME_CUDA=ON -DBufferedSocket_DIR=$BUFFERED_SOCKET_CMAKE_DIR -DRPCameraInterface_DIR=$RP_CAMERA_INTERFACE_CMAKE_DIR -DONNX_RUNTIME_LIB=$ONNX_RUNTIME_DIR/lib/libonnxruntime.so -DONNX_RUNTIME_SESSION_INCLUDE_DIRS=$ONNX_RUNTIME_SESSION_INCLUDE_DIRS -DBUILD_DEMO=$BUILD_DEMO .. || exit 1
 make -j8 || exit 1
 make install || exit 1
 LIBQUESTMR_INSTALL_DIR=$BASE_FOLDER/install
