@@ -2,7 +2,7 @@
 
 Unofficial library that handles the communication with the Quest 2 for mixed reality and provides an easy bridge to OpenCV.  
 Nearly ready for a first release. Already usable but the interface may change a little bit in future versions.  
-A mixed reality capture software is on development [here](https://github.com/RandomPrototypes/RPMixedRealityCapture).
+A graphical interface is available [here](https://github.com/RandomPrototypes/RPMixedRealityCapture).
 
 The master branch is hosted at https://github.com/RandomPrototypes/libQuestMR
 
@@ -34,7 +34,7 @@ Video encoding/decoding is managed by [FFMPEG](https://github.com/FFmpeg/FFmpeg)
 
 [OpenCV](https://github.com/opencv/opencv) is a recommended dependency. Some parts of the project can work without it but many functions including the calibration and visualization would be disabled if compiled without OpenCV.  
 
-[RPMixedRealityCapture](https://github.com/RandomPrototypes/RPMixedRealityCapture) is a recommended but optional dependency. It's a portable camera library I made to support some functions that were not available in OpenCV : camera enumeration, camera formats and resolution enumeration, MJPEG streaming, network camera (android phone with custom app,...).
+[RPCameraInterface](https://github.com/RandomPrototypes/RPCameraInterface) is a recommended but optional dependency. It's a portable camera library I made to support some functions that were not available in OpenCV : camera enumeration, camera formats and resolution enumeration, MJPEG streaming, network camera (android phone with custom app,...).
 
 [onnx-runtime](https://github.com/microsoft/onnxruntime) is a recommended but optional dependency. It's used to run the deep learning method for background subtraction without greenscreen.
 
