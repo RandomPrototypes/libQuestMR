@@ -11,6 +11,6 @@ else
 	BufferedSocket_branch="v1.0.0"
 	RPCameraInterface_branch="v1.0.0"
 fi
-onnxruntime_branch="v1.10.0"
-onnxruntime_precompiled_archive="https://github.com/microsoft/onnxruntime/releases/download/v1.10.0/onnxruntime-linux-x64-gpu-1.10.0.tgz"
-onnxruntime_precompiled_folder="onnxruntime-linux-x64-gpu-1.10.0"
+onnxruntime_branch="v1.12.1"
+onnxruntime_precompiled_archive="https://github.com/microsoft/onnxruntime/releases/download/v1.12.1/onnxruntime-linux-x64-gpu-1.12.1.tgz"
+onnxruntime_precompiled_folder="onnxruntime-linux-x64-gpu-1.12.1"
