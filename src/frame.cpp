@@ -28,6 +28,7 @@ FrameCollection::FrameCollection()
 {
 	recordingFile = NULL;
 	timestampFile = NULL;
+	recordedTimestampId = 0;
 	m_scratchPad.reserve(16 * 1024 * 1024);
 }
 
@@ -66,6 +67,12 @@ void FrameCollection::setRecording(const char *folder, const char *filenameWitho
 	timestampFile = fopen((baseFilename+"_questTimestamp.txt").c_str(), "wb");
 }
 
+void FrameCollection::setRecordedTimestamp(const std::vector<uint64_t>& listTimestamp)
+{
+    recordedTimestamp = listTimestamp;
+    recordedTimestampId = 0;
+}
+
 void FrameCollection::Reset()
 {
 	std::lock_guard<std::mutex> lock(m_frameMutex);
@@ -74,6 +81,7 @@ void FrameCollection::Reset()
 	m_scratchPad.clear();
 	m_frames.clear();
 	m_firstFrameTimeSet = false;
+	recordedTimestampId = 0;
 
 	if(recordingFile != NULL)
 	{
@@ -87,7 +95,7 @@ void FrameCollection::Reset()
 	}
 }
 
-void FrameCollection::AddData(const uint8_t* data, uint32_t len)
+void FrameCollection::AddData(const uint8_t* data, uint32_t len, uint64_t recv_timestamp)
 {
 	std::lock_guard<std::mutex> lock(m_frameMutex);
 
@@ -144,10 +152,30 @@ void FrameCollection::AddData(const uint8_t* data, uint32_t len)
 			frame->m_payload.assign(first, last);
 			m_frames.push_back(frame);
 
-            frame->localTimestamp = getTimestampMs();
+			if(recordedTimestamp.size() > 0) {
+                frame->localTimestamp = recordedTimestamp[std::min(recordedTimestampId, (int)recordedTimestamp.size()-1)];
+                recordedTimestampId++;
+            } else {
+            	frame->localTimestamp = recv_timestamp;
+			}
 
-			if(timestampFile != NULL)
-                fprintf(timestampFile, "%llu,%u,%u\n", static_cast<unsigned long long>(frame->localTimestamp), frameHeader.PayloadType,frameHeader.PayloadLength);
+			if(timestampFile != NULL) {
+				fprintf(timestampFile, "%llu,%u,%u", static_cast<unsigned long long>(frame->localTimestamp), frameHeader.PayloadType,frameHeader.PayloadLength);
+				if(frameHeader.PayloadType == static_cast<uint32_t>(Frame::PayloadType::AUDIO_DATA)) {
+					uint64_t timestamp = convertBytesToUInt64(frame->m_payload.data(), false);
+					int32_t channels = convertBytesToInt32(frame->m_payload.data() + 8, false);
+					int32_t dataLength = convertBytesToInt32(frame->m_payload.data() + 12, false);
+					fprintf(timestampFile, ",%llu,%d,%d", static_cast<unsigned long long>(timestamp), channels, dataLength);
+				} else if(frameHeader.PayloadType == static_cast<uint32_t>(Frame::PayloadType::AUDIO_SAMPLERATE)) {
+					uint32_t sampleRate = *(uint32_t*)(frame->m_payload.data());
+					fprintf(timestampFile, ",%u", sampleRate);
+				} else if(frameHeader.PayloadType == static_cast<uint32_t>(Frame::PayloadType::VIDEO_DIMENSION)) {
+					int32_t w = convertBytesToInt32(frame->m_payload.data(), false);
+                	int32_t h = convertBytesToInt32(frame->m_payload.data() + 4, false);
+					fprintf(timestampFile, ",%d,%d", w, h);
+				}
+				fprintf(timestampFile, "\n");
+			}
 
 			if (!m_firstFrameTimeSet)
 			{

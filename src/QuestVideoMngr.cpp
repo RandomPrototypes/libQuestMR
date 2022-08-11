@@ -79,7 +79,7 @@ QuestAudioDataImpl::QuestAudioDataImpl(uint64_t deviceTimestamp, uint64_t localT
 QuestAudioDataImpl::~QuestAudioDataImpl()
 {
     if(data != NULL)
-        delete data;
+        delete [] data;
 }
 
 uint64_t QuestAudioDataImpl::getLocalTimestamp() const
@@ -173,8 +173,10 @@ private:
     uint64_t mostRecentTimestamp;
 
 	std::shared_ptr<QuestVideoSource> videoSource = NULL;
-    std::vector<uint64_t> recordedTimestamp;
-    int recordedTimestampId;
+
+    FILE *debugAudioFile;
+    FILE *debugAudioHeaderFile;
+    FILE *debugAudioTimestampFile;
 };
 
 QuestVideoMngr::~QuestVideoMngr()
@@ -195,10 +197,16 @@ QuestVideoMngrImpl::QuestVideoMngrImpl()
         OM_BLOG(LOG_INFO, "Codec found. Capabilities 0x%x", m_codec->capabilities);
     }
     #endif
+    //debugAudioFile = fopen("debugAudio.pcm", "w");
+    //debugAudioHeaderFile = fopen("debugAudio.csv", "w");
+    //debugAudioTimestampFile = fopen("debugAudioTimestamp.csv", "w");
 }
 
 QuestVideoMngrImpl::~QuestVideoMngrImpl()
 {
+    //fclose(debugAudioFile);
+    //fclose(debugAudioHeaderFile);
+    //fclose(debugAudioTimestampFile);
 }
 
 void QuestVideoMngrImpl::clearMostRecentAudioFrameList()
@@ -287,7 +295,8 @@ void QuestVideoMngrImpl::ReceiveData()
             {
                 const int bufferSize = 65536;
                 uint8_t buf[bufferSize];
-                int iResult = videoSource->recv((char*)buf, bufferSize);
+                uint64_t timestamp;
+                int iResult = videoSource->recv((char*)buf, bufferSize, &timestamp);
                 if (iResult < 0)
                 {
                     OM_BLOG(LOG_ERROR, "recv error %d, closing socket", iResult);
@@ -303,7 +312,7 @@ void QuestVideoMngrImpl::ReceiveData()
                 else
                 {
                     OM_BLOG(LOG_INFO, "recv: %d bytes received", iResult);
-                    m_frameCollection.AddData(buf, iResult);
+                    m_frameCollection.AddData(buf, iResult, timestamp);
                     break;
                 }
             }
@@ -318,17 +327,20 @@ void QuestVideoMngrImpl::ReceiveData()
 
 void QuestVideoMngrImpl::setRecordedTimestampFile(const char *filename, bool use_rectifyTimestamps)
 {
+    std::vector<uint64_t> recordedTimestamp;
     std::vector<uint32_t> listType;
-    loadQuestRecordedTimestamps(filename, &recordedTimestamp, &listType);
+    std::vector<uint32_t> listSize;
+    std::vector<std::vector<std::string> > listExtraData;
+    loadQuestRecordedTimestamps(filename, &recordedTimestamp, &listType, &listSize, &listExtraData);
+    //loadQuestRecordedTimestamps(filename, &recordedTimestamp, &listType);
     if(use_rectifyTimestamps)
-        recordedTimestamp = rectifyTimestamps(recordedTimestamp, listType);
-    recordedTimestampId = 0;
+        recordedTimestamp = rectifyTimestamps(recordedTimestamp, listType, listSize, listExtraData);
+    setRecordedTimestamp(recordedTimestamp);
 }
 
 void QuestVideoMngrImpl::setRecordedTimestamp(const std::vector<uint64_t>& listTimestamp)
 {
-    recordedTimestamp = listTimestamp;
-    recordedTimestampId = 0;
+    m_frameCollection.setRecordedTimestamp(listTimestamp);
 }
 
 void QuestVideoMngrImpl::setVideoDecoding(bool videoDecoding)
@@ -354,10 +366,6 @@ void QuestVideoMngrImpl::VideoTickImpl(bool skipOldFrames)
             //	break;
 
             auto frame = m_frameCollection.PopFrame();
-            if(recordedTimestamp.size() > 0 && recordedTimestampId < recordedTimestamp.size()) {
-                frame->localTimestamp = recordedTimestamp[recordedTimestampId];
-                recordedTimestampId++;
-            }
 
             //auto current_time = std::chrono::system_clock::now();
             //auto seconds_since_epoch = std::chrono::duration<double>(current_time.time_since_epoch()).count();
@@ -417,6 +425,8 @@ void QuestVideoMngrImpl::VideoTickImpl(bool skipOldFrames)
                                 audioDataHeader.channels = convertBytesToInt32(audioFrame->m_payload.data() + 8, false);
                                 audioDataHeader.dataLength = convertBytesToInt32(audioFrame->m_payload.data() + 12, false);
 
+                                //fprintf(debugAudioHeaderFile, "%lf,%d\n", (double)audioDataHeader.timestamp, audioDataHeader.dataLength);
+
 		                        if (audioDataHeader.channels == 1 || audioDataHeader.channels == 2)
 		                        {
 		                            /*obs_source_audio audio = { 0 };
@@ -427,6 +437,7 @@ void QuestVideoMngrImpl::VideoTickImpl(bool skipOldFrames)
 		                            audio.samples_per_sec = m_audioSampleRate;
 		                            audio.timestamp = audioDataHeader.timestamp;
 		                            obs_source_output_audio(m_src, &audio);*/
+                                    //fprintf(debugAudioTimestampFile, "%llu,%d\n", (unsigned long long)audioFrame->localTimestamp, audioDataHeader.dataLength);
                                     mostRecentAudioFrames.push_back(new QuestAudioDataImpl(audioDataHeader.timestamp, audioFrame->localTimestamp, audioDataHeader.channels, m_audioSampleRate, (uint8_t*)audioFrame->m_payload.data() + sizeof(AudioDataHeader), audioDataHeader.dataLength));
                                     //FILE *debugTimestamp = fopen("debugTimestamp2.csv", "a");
                                     //fprintf(debugTimestamp, "%llu,%llu\n", audioDataHeader.timestamp, audioFrame.localTimestamp);
@@ -535,6 +546,7 @@ void QuestVideoMngrImpl::VideoTickImpl(bool skipOldFrames)
             else if (frame->m_type == Frame::PayloadType::AUDIO_DATA)
             {
                 m_cachedAudioFrames.push_back(std::make_pair(m_audioFrameIndex, frame));
+                //fwrite(frame->m_payload.data(), 1, frame->m_payload.size(), debugAudioFile);
                 ++m_audioFrameIndex;
 #if _DEBUG
                 double timePassed = m_frameCollection.GetNbTickSinceFirstFrame();
@@ -614,7 +626,7 @@ public:
 	QuestVideoSourceFileImpl();
 	virtual ~QuestVideoSourceFileImpl();
 	virtual bool isValid();
-	virtual int recv(char *buf, size_t bufferSize);
+	virtual int recv(char *buf, size_t bufferSize, uint64_t *timestamp);
 
     void open(const char *filename);
     void close();
@@ -647,11 +659,14 @@ void QuestVideoSourceFileImpl::open(const char *filename)
     file = fopen(filename, "rb");
 }
 
-int QuestVideoSourceFileImpl::recv(char *buf, size_t bufferSize)
+int QuestVideoSourceFileImpl::recv(char *buf, size_t bufferSize, uint64_t *timestamp)
 {
     if(feof(file))
         return 0;
-    return static_cast<int>(::fread(buf, 1, bufferSize, file));
+    int sizeRead = static_cast<int>(::fread(buf, 1, bufferSize, file));
+    if(timestamp != NULL)
+        *timestamp = getTimestampMs();
+    return sizeRead;
 }
 
 bool QuestVideoSourceFileImpl::isValid()
@@ -666,7 +681,13 @@ void QuestVideoSourceFileImpl::close()
     file = NULL;
 }
 
-
+class BufferWithTimestamp
+{
+public:
+    int length;
+    char *buffer;
+    uint64_t timestamp;
+};
 
 class QuestVideoSourceBufferedSocketImpl : public QuestVideoSourceBufferedSocket
 {
@@ -674,13 +695,24 @@ public:
 	QuestVideoSourceBufferedSocketImpl();
 	virtual ~QuestVideoSourceBufferedSocketImpl();
 	virtual bool isValid();
-	virtual int recv(char *buf, size_t bufferSize);
+	virtual int recv(char *buf, size_t bufferSize, uint64_t *timestamp);
+    virtual void setUseThread(bool useThread, int maxBufferSize);
+    virtual int getBufferedDataLength();
 
     virtual bool Connect(const char *ipaddr, uint32_t port = OM_DEFAULT_PORT);
     virtual void Disconnect();
 
+    void threadFunc();
+    void clearBufferedData();
+
 private:
     std::shared_ptr<BufferedSocket> m_connectSocket;
+    int threadMaxBufferSize;
+    std::thread *threadPtr;
+    std::mutex mutex;
+    std::vector<BufferWithTimestamp> receivedData;
+    volatile int receivedDataSize;
+    volatile bool stopped;
 };
 
 QuestVideoSourceBufferedSocket::~QuestVideoSourceBufferedSocket()
@@ -690,6 +722,10 @@ QuestVideoSourceBufferedSocket::~QuestVideoSourceBufferedSocket()
 QuestVideoSourceBufferedSocketImpl::QuestVideoSourceBufferedSocketImpl()
 {
 	m_connectSocket = createBufferedSocket();
+    threadPtr = NULL;
+    threadMaxBufferSize = 500*1024*1024;
+    receivedDataSize = 0;
+    stopped = true;
 }
 
 QuestVideoSourceBufferedSocketImpl::~QuestVideoSourceBufferedSocketImpl()
@@ -697,24 +733,117 @@ QuestVideoSourceBufferedSocketImpl::~QuestVideoSourceBufferedSocketImpl()
     Disconnect();
 }
 
+void QuestVideoSourceBufferedSocketImpl::setUseThread(bool useThread, int maxBufferSize)
+{
+    threadMaxBufferSize = useThread ? maxBufferSize : 0;
+}
+
+int QuestVideoSourceBufferedSocketImpl::getBufferedDataLength()
+{
+    return receivedDataSize;
+}
+
+void QuestVideoSourceBufferedSocketImpl::clearBufferedData()
+{
+    mutex.lock();
+    receivedDataSize = 0;
+    for(size_t i = 0; i < receivedData.size(); i++)
+        delete [] receivedData[i].buffer;
+    receivedData.clear();
+    mutex.unlock();
+}
+
 
 bool QuestVideoSourceBufferedSocketImpl::Connect(const char *ipaddr, uint32_t port)
 {
-    return m_connectSocket->connect(ipaddr, port);
+    bool ret = m_connectSocket->connect(ipaddr, port);
+    clearBufferedData();
+    if(ret && threadMaxBufferSize > 0) {
+        threadPtr = new std::thread(&QuestVideoSourceBufferedSocketImpl::threadFunc, this);
+    }
+    return ret;
 }
 
-int QuestVideoSourceBufferedSocketImpl::recv(char *buf, size_t bufferSize)
+void QuestVideoSourceBufferedSocketImpl::threadFunc()
 {
-    return m_connectSocket->readData(buf, (int)bufferSize);
+    const int bufferSize = 50000;
+    char buffer[bufferSize];
+    while(!stopped)
+    {
+        while(receivedDataSize >= threadMaxBufferSize) {
+            if(stopped) {
+                return ;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+        int sizeRead = m_connectSocket->readData(buffer, bufferSize);
+        if(sizeRead <= 0) {
+            stopped = true;
+            break;
+        }
+        BufferWithTimestamp data;
+        data.timestamp = getTimestampMs();
+        data.buffer = new char[sizeRead];
+        memcpy(data.buffer, buffer, sizeRead);
+        data.length = sizeRead;
+        mutex.lock();
+        receivedData.push_back(data);
+        receivedDataSize += sizeRead;
+        mutex.unlock();
+    }
+}
+
+int QuestVideoSourceBufferedSocketImpl::recv(char *buf, size_t bufferSize, uint64_t *timestamp)
+{
+    if(threadPtr != NULL) {
+        while(receivedDataSize == 0) {
+            if(stopped) {
+                return 0;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+        mutex.lock();
+        BufferWithTimestamp data = receivedData[0];
+        if(timestamp != NULL)
+            *timestamp = data.timestamp;
+
+        int readSize = 0;
+        if(data.length <= bufferSize) {
+            receivedDataSize -= data.length;
+            receivedData.erase(receivedData.begin());
+            readSize = data.length;
+            memcpy(buf, data.buffer, data.length);
+            delete [] data.buffer;
+        } else {
+            receivedDataSize -= bufferSize;
+            readSize = bufferSize;
+            memcpy(buf, data.buffer, bufferSize);
+            for(size_t i = 0; i < data.length-bufferSize; i++)
+                data.buffer[i] = data.buffer[i+bufferSize];
+            data.length -= bufferSize;
+        }
+        mutex.unlock();
+        return readSize;
+    } else {
+        int sizeRead = m_connectSocket->readData(buf, (int)bufferSize);
+        if(timestamp != NULL)
+            *timestamp = getTimestampMs();
+        return sizeRead;
+    }
 }
 
 bool QuestVideoSourceBufferedSocketImpl::isValid()
 {
-    return m_connectSocket->isConnected();
+    return !stopped && m_connectSocket->isConnected();
 }
 
 void QuestVideoSourceBufferedSocketImpl::Disconnect()
 {
+    stopped = true;
+    if(threadPtr != NULL) {
+        threadPtr->join();
+        threadPtr = NULL;
+    }
     m_connectSocket->disconnect();
 }
 
@@ -834,7 +963,7 @@ extern "C"
 	}
 
 
-    bool loadQuestRecordedTimestamps(const char *filename, std::vector<uint64_t> *listTimestamp, std::vector<uint32_t> *listType, std::vector<uint32_t> *listSize)
+    bool loadQuestRecordedTimestamps(const char *filename, std::vector<uint64_t> *listTimestamp, std::vector<uint32_t> *listType, std::vector<uint32_t> *listSize, std::vector<std::vector<std::string> > *listExtraData)
     {
         if(listTimestamp != NULL)
             listTimestamp->clear();
@@ -842,6 +971,8 @@ extern "C"
             listType->clear();
         if(listSize != NULL)
             listSize->clear();
+        if(listExtraData != NULL)
+            listExtraData->clear();
         
         std::ifstream input(filename);
         if(!input.good())
@@ -867,6 +998,13 @@ extern "C"
                 listType->push_back(type);
             if(listSize != NULL)
                 listSize->push_back(size);
+            if(listExtraData != NULL) {
+                std::vector<std::string> data;
+                std::string tmp;
+                while(std::getline(str, tmp, ','))
+                    data.push_back(tmp);
+                listExtraData->push_back(data);
+            }
         }
         return true;
     }

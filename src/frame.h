@@ -71,7 +71,9 @@ public:
 
 	void setRecording(const char *folder, const char *filenameWithoutExt);
 
-	void AddData(const uint8_t* data, uint32_t len);
+	void setRecordedTimestamp(const std::vector<uint64_t>& listTimestamp);
+
+	void AddData(const uint8_t* data, uint32_t len, uint64_t recv_timestamp);
 
 	bool HasCompletedFrame();
 
@@ -98,6 +100,9 @@ private:
 
 	FILE *recordingFile;
 	FILE *timestampFile;
+
+	std::vector<uint64_t> recordedTimestamp;
+    int recordedTimestampId;
 
 	std::chrono::time_point<std::chrono::system_clock> m_firstFrameTime;
 	std::vector<uint8_t> m_scratchPad;
