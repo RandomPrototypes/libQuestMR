@@ -33,7 +33,7 @@ class LQMR_EXPORTS QuestVideoSource
 public:
 	virtual ~QuestVideoSource();
 	virtual bool isValid() = 0;
-	virtual int recv(char *buf, size_t bufferSize) = 0;
+	virtual int recv(char *buf, size_t bufferSize, uint64_t *timestamp) = 0;
 };
 
 class LQMR_EXPORTS QuestVideoSourceBufferedSocket : public QuestVideoSource
@@ -41,7 +41,9 @@ class LQMR_EXPORTS QuestVideoSourceBufferedSocket : public QuestVideoSource
 public:
 	virtual ~QuestVideoSourceBufferedSocket();
 	virtual bool isValid() = 0;
-	virtual int recv(char *buf, size_t bufferSize) = 0;
+	virtual int recv(char *buf, size_t bufferSize, uint64_t *timestamp) = 0;
+	virtual void setUseThread(bool useThread, int maxBufferSize) = 0;
+	virtual int getBufferedDataLength() = 0;
 
     virtual bool Connect(const char *ipaddr, uint32_t port = OM_DEFAULT_PORT) = 0;
     virtual void Disconnect() = 0;
@@ -52,7 +54,7 @@ class LQMR_EXPORTS QuestVideoSourceFile : public QuestVideoSource
 public:
 	virtual ~QuestVideoSourceFile();
 	virtual bool isValid() = 0;
-	virtual int recv(char *buf, size_t bufferSize) = 0;
+	virtual int recv(char *buf, size_t bufferSize, uint64_t *timestamp) = 0;
 
     virtual void open(const char *filename) = 0;
     virtual void close() = 0;
@@ -77,6 +79,7 @@ public:
     virtual void StartDecoder() = 0;
     virtual void StopDecoder() = 0;
 
+	virtual bool isRecording() const = 0;//return true if the stream is currently recorded
 	virtual void setRecording(const char *folder, const char *filenameWithoutExt) = 0;//set folder and filename (without extension) for recording 
 	virtual void setRecordedTimestampFile(const char *filename, bool use_rectifyTimestamps = true) = 0;//set timestamp file (for playback)
 	virtual void setRecordedTimestamp(const std::vector<uint64_t>& listTimestamp) = 0;//set timestamps (for playback)
@@ -128,7 +131,7 @@ extern "C"
 	LQMR_EXPORTS QuestVideoMngrThreadData *createQuestVideoMngrThreadDataRawPtr(std::shared_ptr<QuestVideoMngr> mngr);
 	LQMR_EXPORTS void deleteQuestVideoMngrThreadDataRawPtr(QuestVideoMngrThreadData *threadData);
 	
-	LQMR_EXPORTS bool loadQuestRecordedTimestamps(const char *filename, std::vector<uint64_t> *listTimestamp, std::vector<uint32_t> *listType = NULL, std::vector<uint32_t> *listSize = NULL);
+	LQMR_EXPORTS bool loadQuestRecordedTimestamps(const char *filename, std::vector<uint64_t> *listTimestamp, std::vector<uint32_t> *listType = NULL, std::vector<uint32_t> *listSize = NULL, std::vector<std::vector<std::string> > *listExtraData = NULL);
 
 }
 
@@ -137,7 +140,7 @@ inline std::shared_ptr<QuestVideoSourceBufferedSocket> createQuestVideoSourceBuf
 	return std::shared_ptr<QuestVideoSourceBufferedSocket>(createQuestVideoSourceBufferedSocketRawPtr(), deleteQuestVideoSourceBufferedSocketRawPtr);
 }
 
-	inline std::shared_ptr<QuestVideoSourceFile> createQuestVideoSourceFile()
+inline std::shared_ptr<QuestVideoSourceFile> createQuestVideoSourceFile()
 {
 	return std::shared_ptr<QuestVideoSourceFile>(createQuestVideoSourceFileRawPtr(), deleteQuestVideoSourceFileRawPtr);
 }

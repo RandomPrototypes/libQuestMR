@@ -17,6 +17,7 @@
 #include "log.h"
 #include "frame.h"
 #include <string.h>
+#include <chrono>
 #include "libQuestMR/QuestVideoMngr.h"
 #include <BufferedSocket/DataPacket.h>
 
@@ -28,6 +29,7 @@ FrameCollection::FrameCollection()
 {
 	recordingFile = NULL;
 	timestampFile = NULL;
+	recordedTimestampId = 0;
 	m_scratchPad.reserve(16 * 1024 * 1024);
 }
 
@@ -44,6 +46,11 @@ FrameHeader FrameCollection::readFrameHeader(unsigned char *data) const
 	frameHeader.PayloadType                   = convertBytesToUInt32(data + 8, false);
 	frameHeader.PayloadLength                 = convertBytesToUInt32(data + 12, false);
 	return frameHeader;
+}
+
+bool FrameCollection::isRecording() const
+{
+	return recordingFile != NULL;
 }
 
 void FrameCollection::setRecording(const char *folder, const char *filenameWithoutExt)
@@ -66,6 +73,12 @@ void FrameCollection::setRecording(const char *folder, const char *filenameWitho
 	timestampFile = fopen((baseFilename+"_questTimestamp.txt").c_str(), "wb");
 }
 
+void FrameCollection::setRecordedTimestamp(const std::vector<uint64_t>& listTimestamp)
+{
+    recordedTimestamp = listTimestamp;
+    recordedTimestampId = 0;
+}
+
 void FrameCollection::Reset()
 {
 	std::lock_guard<std::mutex> lock(m_frameMutex);
@@ -74,6 +87,7 @@ void FrameCollection::Reset()
 	m_scratchPad.clear();
 	m_frames.clear();
 	m_firstFrameTimeSet = false;
+	recordedTimestampId = 0;
 
 	if(recordingFile != NULL)
 	{
@@ -87,7 +101,7 @@ void FrameCollection::Reset()
 	}
 }
 
-void FrameCollection::AddData(const uint8_t* data, uint32_t len)
+void FrameCollection::AddData(const uint8_t* data, uint32_t len, uint64_t recv_timestamp)
 {
 	std::lock_guard<std::mutex> lock(m_frameMutex);
 
@@ -99,9 +113,13 @@ void FrameCollection::AddData(const uint8_t* data, uint32_t len)
 #if _DEBUG
 	OM_LOG(LOG_DEBUG, "FrameCollection::AddData, len = %u", len);
 #endif
-    if(recordingFile != NULL)
+    if(recordingFile != NULL) {
+		//auto start = std::chrono::steady_clock::now();
 		fwrite(data, len, 1, recordingFile);
-	
+		//auto end = std::chrono::steady_clock::now();
+		//printf("recording: %lf ms\n", std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()/1000.0);
+	}
+
 	m_scratchPad.insert(m_scratchPad.end(), data, data + len);
 
 	while (m_scratchPad.size() >= sizeof(FrameHeader))
@@ -144,10 +162,30 @@ void FrameCollection::AddData(const uint8_t* data, uint32_t len)
 			frame->m_payload.assign(first, last);
 			m_frames.push_back(frame);
 
-            frame->localTimestamp = getTimestampMs();
+			if(recordedTimestamp.size() > 0) {
+                frame->localTimestamp = recordedTimestamp[std::min(recordedTimestampId, (int)recordedTimestamp.size()-1)];
+                recordedTimestampId++;
+            } else {
+            	frame->localTimestamp = recv_timestamp;
+			}
 
-			if(timestampFile != NULL)
-                fprintf(timestampFile, "%llu,%u,%u\n", static_cast<unsigned long long>(frame->localTimestamp), frameHeader.PayloadType,frameHeader.PayloadLength);
+			if(timestampFile != NULL) {
+				fprintf(timestampFile, "%llu,%u,%u", static_cast<unsigned long long>(frame->localTimestamp), frameHeader.PayloadType,frameHeader.PayloadLength);
+				if(frameHeader.PayloadType == static_cast<uint32_t>(Frame::PayloadType::AUDIO_DATA)) {
+					uint64_t timestamp = convertBytesToUInt64(frame->m_payload.data(), false);
+					int32_t channels = convertBytesToInt32(frame->m_payload.data() + 8, false);
+					int32_t dataLength = convertBytesToInt32(frame->m_payload.data() + 12, false);
+					fprintf(timestampFile, ",%llu,%d,%d", static_cast<unsigned long long>(timestamp), channels, dataLength);
+				} else if(frameHeader.PayloadType == static_cast<uint32_t>(Frame::PayloadType::AUDIO_SAMPLERATE)) {
+					uint32_t sampleRate = *(uint32_t*)(frame->m_payload.data());
+					fprintf(timestampFile, ",%u", sampleRate);
+				} else if(frameHeader.PayloadType == static_cast<uint32_t>(Frame::PayloadType::VIDEO_DIMENSION)) {
+					int32_t w = convertBytesToInt32(frame->m_payload.data(), false);
+                	int32_t h = convertBytesToInt32(frame->m_payload.data() + 4, false);
+					fprintf(timestampFile, ",%d,%d", w, h);
+				}
+				fprintf(timestampFile, "\n");
+			}
 
 			if (!m_firstFrameTimeSet)
 			{

@@ -7,11 +7,24 @@
 #include <RPCameraInterface/OpenCVConverter.h>
 #include <RPCameraInterface/VideoEncoder.h>
 #include "RPCam_helper.h"
+#include <fstream>
+
 
 using namespace libQuestMR;
 using namespace RPCameraInterface;
 
-void captureFromQuest(const char *ipAddr, const char *recordName)
+bool isFile(const char *str) 
+{
+	std::ifstream f(str);
+    return f.good();
+}
+
+static bool endsWith(const std::string& str, const std::string& suffix)
+{
+    return str.size() >= suffix.size() && 0 == str.compare(str.size()-suffix.size(), suffix.size(), suffix);
+}
+
+void captureFromQuest(const char *ipAddr_or_recordedFile, const char *recordName)
 {
 	bool recordDirectlyFromQuest = true;
 
@@ -25,12 +38,28 @@ void captureFromQuest(const char *ipAddr, const char *recordName)
 	}
 	
     std::shared_ptr<QuestVideoMngr> mngr = createQuestVideoMngr();
-    std::shared_ptr<QuestVideoSourceBufferedSocket> videoSrc = createQuestVideoSourceBufferedSocket();
-    if(!videoSrc->Connect(ipAddr)) {
-    	printf("can not connect to quest\n");
-    	return;
-    }
-    mngr->attachSource(videoSrc);
+    std::shared_ptr<QuestVideoSourceBufferedSocket> videoSrcSock;
+	std::shared_ptr<QuestVideoSourceFile> videoSrcFile;
+	if(endsWith(ipAddr_or_recordedFile, ".questMRVideo")) {
+		videoSrcFile = createQuestVideoSourceFile();
+		videoSrcFile->open(ipAddr_or_recordedFile);
+		if(!videoSrcFile->isValid()) {
+			printf("can load recorded file\n");
+			return;
+		}
+		mngr->attachSource(videoSrcFile);
+		std::string timestampFilename = ipAddr_or_recordedFile;
+		timestampFilename.resize(timestampFilename.size() - strlen(".questMRVideo"));
+		timestampFilename += "_questTimestamp.txt";
+		mngr->setRecordedTimestampFile(timestampFilename.c_str(), false);
+	} else {
+		videoSrcSock = createQuestVideoSourceBufferedSocket();
+		if(!videoSrcSock->Connect(ipAddr_or_recordedFile)) {
+			printf("can not connect to quest\n");
+			return;
+		}
+		mngr->attachSource(videoSrcSock);
+	}
 	if(recordDirectlyFromQuest)
 		mngr->setRecording(".", recordName);
 
@@ -108,13 +137,16 @@ void captureFromQuest(const char *ipAddr, const char *recordName)
 		fclose(timestampFile);
 	}
     mngr->detachSource();
-    videoSrc->Disconnect();
+	if(videoSrcFile != NULL)
+		videoSrcFile->close();
+	if(videoSrcSock != NULL)
+    	videoSrcSock->Disconnect();
 }
 
 int main(int argc, char** argv) 
 {
 	if(argc < 3) {
-		printf("usage: demo-captureRaw-RPCam ipAddr recordName\n");
+		printf("usage: demo-captureRaw-RPCam ipAddr_or_recordedFile recordName\n");
 	} else {
 		captureFromQuest(argv[1], argv[2]);
     }
