@@ -17,6 +17,7 @@
 #include "log.h"
 #include "frame.h"
 #include <string.h>
+#include <chrono>
 #include "libQuestMR/QuestVideoMngr.h"
 #include <BufferedSocket/DataPacket.h>
 
@@ -45,6 +46,11 @@ FrameHeader FrameCollection::readFrameHeader(unsigned char *data) const
 	frameHeader.PayloadType                   = convertBytesToUInt32(data + 8, false);
 	frameHeader.PayloadLength                 = convertBytesToUInt32(data + 12, false);
 	return frameHeader;
+}
+
+bool FrameCollection::isRecording() const
+{
+	return recordingFile != NULL;
 }
 
 void FrameCollection::setRecording(const char *folder, const char *filenameWithoutExt)
@@ -107,9 +113,13 @@ void FrameCollection::AddData(const uint8_t* data, uint32_t len, uint64_t recv_t
 #if _DEBUG
 	OM_LOG(LOG_DEBUG, "FrameCollection::AddData, len = %u", len);
 #endif
-    if(recordingFile != NULL)
+    if(recordingFile != NULL) {
+		//auto start = std::chrono::steady_clock::now();
 		fwrite(data, len, 1, recordingFile);
-	
+		//auto end = std::chrono::steady_clock::now();
+		//printf("recording: %lf ms\n", std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()/1000.0);
+	}
+
 	m_scratchPad.insert(m_scratchPad.end(), data, data + len);
 
 	while (m_scratchPad.size() >= sizeof(FrameHeader))

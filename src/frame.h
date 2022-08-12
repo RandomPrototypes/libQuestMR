@@ -69,6 +69,8 @@ public:
 
 	void Reset();
 
+	bool isRecording() const;
+
 	void setRecording(const char *folder, const char *filenameWithoutExt);
 
 	void setRecordedTimestamp(const std::vector<uint64_t>& listTimestamp);

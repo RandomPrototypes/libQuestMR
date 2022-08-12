@@ -19,6 +19,7 @@
 #include <fcntl.h>
 #include <thread>
 #include <fstream>
+#include <chrono>
 #include "log.h"
 #include "frame.h"
 #include <BufferedSocket/DataPacket.h>
@@ -120,6 +121,7 @@ public:
     virtual void StartDecoder();
     virtual void StopDecoder();
 
+    virtual bool isRecording() const;//return true if the stream is currently recorded
 	virtual void setRecording(const char *folder, const char *filenameWithoutExt);//set folder and filename (without extension) for recording 
 	virtual void setRecordedTimestampFile(const char *filename, bool use_rectifyTimestamps = true);//set timestamp file (for playback)
     virtual void setRecordedTimestamp(const std::vector<uint64_t>& listTimestamp);//set timestamps (for playback)
@@ -214,6 +216,11 @@ void QuestVideoMngrImpl::clearMostRecentAudioFrameList()
     for(size_t i = 0; i < mostRecentAudioFrames.size(); i++)
         delete mostRecentAudioFrames[i];
     mostRecentAudioFrames.clear();
+}
+
+bool QuestVideoMngrImpl::isRecording() const
+{
+    return m_frameCollection.isRecording();
 }
 
 void QuestVideoMngrImpl::setRecording(const char *folder, const char *filenameWithoutExt)
@@ -380,6 +387,8 @@ void QuestVideoMngrImpl::VideoTickImpl(bool skipOldFrames)
             }
             else if (frame->m_type == Frame::PayloadType::VIDEO_DATA)
             {
+                //auto start = std::chrono::steady_clock::now();
+		
             	if(videoDecoding)
             	{
 		        	#ifdef LIBQUESTMR_USE_FFMPEG
@@ -534,6 +543,9 @@ void QuestVideoMngrImpl::VideoTickImpl(bool skipOldFrames)
 		        } else {
 		        	++m_videoFrameIndex;
 		        }
+
+                //auto end = std::chrono::steady_clock::now();
+		        //printf("decode frame: %lf ms\n", std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()/1000.0);
 
                 if(!skipOldFrames)
                     break;
@@ -758,8 +770,11 @@ bool QuestVideoSourceBufferedSocketImpl::Connect(const char *ipaddr, uint32_t po
 {
     bool ret = m_connectSocket->connect(ipaddr, port);
     clearBufferedData();
-    if(ret && threadMaxBufferSize > 0) {
-        threadPtr = new std::thread(&QuestVideoSourceBufferedSocketImpl::threadFunc, this);
+    if(ret)
+    {
+        stopped = false;
+        if(threadMaxBufferSize > 0)
+            threadPtr = new std::thread(&QuestVideoSourceBufferedSocketImpl::threadFunc, this);
     }
     return ret;
 }
@@ -795,7 +810,7 @@ void QuestVideoSourceBufferedSocketImpl::threadFunc()
 
 int QuestVideoSourceBufferedSocketImpl::recv(char *buf, size_t bufferSize, uint64_t *timestamp)
 {
-    if(threadPtr != NULL) {
+    if(threadPtr != NULL || receivedDataSize > 0) {
         while(receivedDataSize == 0) {
             if(stopped) {
                 return 0;
@@ -834,7 +849,7 @@ int QuestVideoSourceBufferedSocketImpl::recv(char *buf, size_t bufferSize, uint6
 
 bool QuestVideoSourceBufferedSocketImpl::isValid()
 {
-    return !stopped && m_connectSocket->isConnected();
+    return receivedDataSize > 0 || (!stopped && m_connectSocket->isConnected());
 }
 
 void QuestVideoSourceBufferedSocketImpl::Disconnect()

@@ -79,6 +79,7 @@ public:
     virtual void StartDecoder() = 0;
     virtual void StopDecoder() = 0;
 
+	virtual bool isRecording() const = 0;//return true if the stream is currently recorded
 	virtual void setRecording(const char *folder, const char *filenameWithoutExt) = 0;//set folder and filename (without extension) for recording 
 	virtual void setRecordedTimestampFile(const char *filename, bool use_rectifyTimestamps = true) = 0;//set timestamp file (for playback)
 	virtual void setRecordedTimestamp(const std::vector<uint64_t>& listTimestamp) = 0;//set timestamps (for playback)
