@@ -44,6 +44,8 @@ public:
 	virtual int recv(char *buf, size_t bufferSize, uint64_t *timestamp) = 0;
 	virtual void setUseThread(bool useThread, int maxBufferSize) = 0;
 	virtual int getBufferedDataLength() = 0;
+	
+	virtual void requestStopRead() = 0;
 
     virtual bool Connect(const char *ipaddr, uint32_t port = OM_DEFAULT_PORT) = 0;
     virtual void Disconnect() = 0;

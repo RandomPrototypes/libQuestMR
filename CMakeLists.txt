@@ -26,6 +26,7 @@ SET(tinyxml2 ${tinyxml2_SOURCE_DIR})
 
 option(BUILD_DEMO "Build DEMO" ON)
 option(USE_OPENCV "Use OpenCV" ON)
+option(USE_DEPTHAI "Use DepthAI" OFF)
 option(USE_RPCameraInterface "Use RPCameraInterface" ON)
 option(USE_FFMPEG "Use FFMPEG" ON)
 option(USE_ONNX_RUNTIME "Use ONNX Runtime" ON)
@@ -37,6 +38,10 @@ if(USE_ONNX_RUNTIME)
 	find_path(ONNX_RUNTIME_SESSION_INCLUDE_DIRS onnxruntime_cxx_api.h HINTS /usr/local/include/onnxruntime/core/session)
 	find_library(ONNX_RUNTIME_LIB onnxruntime HINTS /usr/local/lib)
 	include_directories(${ONNX_RUNTIME_SESSION_INCLUDE_DIRS})
+endif()
+
+if(USE_DEPTHAI)
+	find_package(depthai CONFIG REQUIRED)
 endif()
 
 if(USE_OPENCV)

@@ -711,6 +711,8 @@ public:
     virtual void setUseThread(bool useThread, int maxBufferSize);
     virtual int getBufferedDataLength();
 
+    virtual void requestStopRead();
+
     virtual bool Connect(const char *ipaddr, uint32_t port = OM_DEFAULT_PORT);
     virtual void Disconnect();
 
@@ -763,6 +765,11 @@ void QuestVideoSourceBufferedSocketImpl::clearBufferedData()
         delete [] receivedData[i].buffer;
     receivedData.clear();
     mutex.unlock();
+}
+
+void QuestVideoSourceBufferedSocketImpl::requestStopRead()
+{
+    m_connectSocket->requestStopRead();
 }
 
 
