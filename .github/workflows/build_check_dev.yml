@@ -31,7 +31,7 @@ jobs:
     - name: Install BufferedSocket
       run: |
         cd ${{github.workspace}}
-        git clone https://github.com/RandomPrototypes/BufferedSocket.git
+        git clone -b dev https://github.com/RandomPrototypes/BufferedSocket.git
         cd BufferedSocket
         mkdir build
         mkdir install
@@ -46,6 +46,7 @@ jobs:
         sudo apt update
         sudo apt -y install pkg-config 
         sudo apt -y install libavcodec-dev libavformat-dev libswscale-dev libavdevice-dev libavfilter-dev
+        sudo apt -y install libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
         sudo apt -y install libopencv-dev
 
     - name: Install libav and OpenCV
@@ -69,6 +70,7 @@ jobs:
       run: |
         brew install pkg-config
         brew install ffmpeg
+        brew install gstreamer gst-plugins-base
         brew install opencv
     
     - name: Clone RPCameraInterface
@@ -89,7 +91,7 @@ jobs:
       if: runner.os == 'Windows'
       run: |
         cd ${{github.workspace}}/RPCameraInterface/build
-        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/RPCameraInterface/install -DUSE_OPENCV=ON -DBufferedSocket_DIR=${{github.workspace}}/BufferedSocket/install/lib/cmake/BufferedSocket -DFFMPEG_DIR=${{github.workspace}}/ffmpeg -DOpenCV_DIR=${{github.workspace}}/opencv/install ..
+        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/RPCameraInterface/install -DUSE_OPENCV=ON -DUSE_GSTREAMER=OFF -DBufferedSocket_DIR=${{github.workspace}}/BufferedSocket/install/lib/cmake/BufferedSocket -DFFMPEG_DIR=${{github.workspace}}/ffmpeg -DOpenCV_DIR=${{github.workspace}}/opencv/install ..
           
     - name: Build and Install RPCameraInterface
       run: |
