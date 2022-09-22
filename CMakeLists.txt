@@ -24,7 +24,7 @@ include_directories(${BufferedSocket_INCLUDE_DIR})
 
 SET(tinyxml2 ${tinyxml2_SOURCE_DIR})
 
-option(BUILD_DEMO "Build DEMO" ON)
+option(BUILD_DEMO "Build DEMO" OFF)
 option(USE_OPENCV "Use OpenCV" ON)
 option(USE_DEPTHAI "Use DepthAI" OFF)
 option(USE_RPCameraInterface "Use RPCameraInterface" ON)

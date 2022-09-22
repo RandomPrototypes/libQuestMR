@@ -1,6 +1,7 @@
 #include <libQuestMR/QuestCalibData.h>
 #include <libQuestMR/QuestStringUtil.h>
 #include <sstream>
+#include "tinyxml2.h"
 
 namespace libQuestMR
 {
@@ -339,31 +340,31 @@ void QuestCalibData::setCameraName(const char *name)
     camera_name = name;
 }
 
-void QuestCalibData::loadXML(tinyxml2::XMLDocument& doc)
+void loadXML(QuestCalibData *data, tinyxml2::XMLDocument& doc)
 {
     tinyxml2::XMLElement *rootElem = doc.FirstChildElement("opencv_storage");
     if(rootElem == NULL) {
     	printf("can not load calib XML\n");
     	return ;
     }
-    setCameraId(getString(rootElem, "camera_id").c_str());
-    setCameraName(getString(rootElem, "camera_name").c_str());
-    image_width = getInt(rootElem, "image_width");
-    image_height = getInt(rootElem, "image_height");
-    getMatrix(rootElem, "camera_matrix", camera_matrix, 9);
-    getMatrix(rootElem, "distortion_coefficients", distortion_coefficients, 8);
-    getMatrix(rootElem, "translation", translation, 3);
-    getMatrix(rootElem, "rotation", rotation, 4);
-    attachedDevice = getInt(rootElem, "attachedDevice");
-    camDelayMs = getInt(rootElem, "camDelayMs");
-    chromaKeyColorRed = getInt(rootElem, "chromaKeyColorRed");
-    chromaKeyColorGreen = getInt(rootElem, "chromaKeyColorGreen");
-    chromaKeyColorBlue = getInt(rootElem, "chromaKeyColorBlue");
-    chromaKeySimilarity = getDouble(rootElem, "chromaKeySimilarity");
-    chromaKeySmoothRange = getDouble(rootElem, "chromaKeySmoothRange");
-    chromaKeySpillRange = getDouble(rootElem, "chromaKeySpillRange");
-    getMatrix(rootElem, "raw_translation", raw_translation, 3);
-    getMatrix(rootElem, "raw_rotation", raw_rotation, 4);
+    data->setCameraId(getString(rootElem, "camera_id").c_str());
+    data->setCameraName(getString(rootElem, "camera_name").c_str());
+    data->image_width = getInt(rootElem, "image_width");
+    data->image_height = getInt(rootElem, "image_height");
+    getMatrix(rootElem, "camera_matrix", data->camera_matrix, 9);
+    getMatrix(rootElem, "distortion_coefficients", data->distortion_coefficients, 8);
+    getMatrix(rootElem, "translation", data->translation, 3);
+    getMatrix(rootElem, "rotation", data->rotation, 4);
+    data->attachedDevice = getInt(rootElem, "attachedDevice");
+    data->camDelayMs = getInt(rootElem, "camDelayMs");
+    data->chromaKeyColorRed = getInt(rootElem, "chromaKeyColorRed");
+    data->chromaKeyColorGreen = getInt(rootElem, "chromaKeyColorGreen");
+    data->chromaKeyColorBlue = getInt(rootElem, "chromaKeyColorBlue");
+    data->chromaKeySimilarity = getDouble(rootElem, "chromaKeySimilarity");
+    data->chromaKeySmoothRange = getDouble(rootElem, "chromaKeySmoothRange");
+    data->chromaKeySpillRange = getDouble(rootElem, "chromaKeySpillRange");
+    getMatrix(rootElem, "raw_translation", data->raw_translation, 3);
+    getMatrix(rootElem, "raw_rotation", data->raw_rotation, 4);
 }
 
 PortableString QuestCalibData::generateXMLString() const
@@ -396,14 +397,14 @@ void QuestCalibData::loadXMLFile(const char *filename)
 {
     tinyxml2::XMLDocument doc;
     doc.LoadFile( filename );
-    loadXML(doc);
+    loadXML(this, doc);
 }
 
 void QuestCalibData::loadXMLString(const char *str)
 {
     tinyxml2::XMLDocument doc;
     doc.Parse(str);
-    loadXML(doc);
+    loadXML(this, doc);
 }
 
 void QuestCalibData::setCameraFromSizeAndFOV(double fov_x, int width, int height)

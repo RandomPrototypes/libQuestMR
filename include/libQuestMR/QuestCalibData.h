@@ -5,8 +5,6 @@
 #include <string>
 #include <vector>
 
-#include "tinyxml2.h"
-
 #ifdef LIBQUESTMR_USE_OPENCV
 #include <opencv2/opencv.hpp>
 #endif
@@ -81,9 +79,6 @@ public:
     bool calibrateCamIntrinsicAndPose(cv::Point3d camOrig, const std::vector<cv::Point3d>& listPoint3d, const std::vector<cv::Point2d>& listPoint2d, bool print_fov_results = false);
 
 #endif
-
-private:
-	void loadXML(tinyxml2::XMLDocument& doc);
 };
 
 #ifdef LIBQUESTMR_USE_OPENCV
