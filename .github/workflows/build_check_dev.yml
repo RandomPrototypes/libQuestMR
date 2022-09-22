@@ -31,7 +31,7 @@ jobs:
     - name: Install BufferedSocket
       run: |
         cd ${{github.workspace}}
-        git clone https://github.com/RandomPrototypes/BufferedSocket.git
+        git clone -b dev https://github.com/RandomPrototypes/BufferedSocket.git
         cd BufferedSocket
         mkdir build
         mkdir install
