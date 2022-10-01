@@ -127,7 +127,7 @@ void FrameCollection::AddData(const uint8_t* data, uint32_t len, uint64_t recv_t
 		FrameHeader frameHeader = readFrameHeader(m_scratchPad.data());
 		if (frameHeader.Magic != Magic)
 		{
-			OM_LOG(LOG_ERROR, "Frame magic mismatch: expected 0x%08x get 0x%08x", Magic, frameHeader->Magic);
+			OM_LOG(LOG_ERROR, "Frame magic mismatch: expected 0x%08x get 0x%08x", Magic, frameHeader.Magic);
 			m_hasError = true;
 			return;
 		}
