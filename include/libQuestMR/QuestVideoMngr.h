@@ -2,15 +2,6 @@
 
 #include <libQuestMR/config.h>
 
-#ifdef LIBQUESTMR_USE_FFMPEG
-extern "C" {
-#include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
-#include <libswscale/swscale.h>
-#include <libavutil/error.h>
-}
-#endif
-
 #include <BufferedSocket/BufferedSocket.h>
 
 #ifdef LIBQUESTMR_USE_OPENCV

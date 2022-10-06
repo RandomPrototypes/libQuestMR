@@ -24,6 +24,15 @@
 #include "frame.h"
 #include <BufferedSocket/DataPacket.h>
 
+#ifdef LIBQUESTMR_USE_FFMPEG
+extern "C" {
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libswscale/swscale.h>
+#include <libavutil/error.h>
+}
+#endif
+
 
 namespace libQuestMR
 {
