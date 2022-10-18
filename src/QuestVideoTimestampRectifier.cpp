@@ -165,7 +165,7 @@ std::vector<uint64_t> rectifyAudioTimestamps(const std::vector<uint64_t>& listLo
 	std::vector<double> listOffset(listQuestTimestamp.size());
 	for(size_t i = 0; i < listQuestTimestamp.size(); i++) {
 		listOffset[i] = listQuestTimestamp[i] - listAudioRecordedLength[i];
-		//printf("offset %d : %lf\n", i, listOffset[i]);
+		//printf("offset %d : %lf = %lf - %lf\n", i, listOffset[i], listQuestTimestamp[i], listAudioRecordedLength[i]);
 	}
 	std::vector<int> listClusterIds(listQuestTimestamp.size());
 	std::vector<double> listClustersMean(1);
@@ -230,19 +230,26 @@ std::vector<uint64_t> rectifyTimestamps(const std::vector<uint64_t>& listTimesta
 			if(i < listExtraData.size() && listExtraData[i].size() > 0) {
 				uint64_t questTimestamp;
 				std::istringstream(listExtraData[i][0]) >> questTimestamp;
-				std::istringstream(listExtraData[i][1]) >> nbChannels;
+				int nb;
+				std::istringstream(listExtraData[i][1]) >> nb;
+				if(nb != 0)
+					nbChannels = nb;
 				listAudioDataQuestTimestamp.push_back(questTimestamp/1000.0);
-				//printf("questTimestamp: %s = %llu\n", listExtraData[i][0].c_str(), (unsigned long long)questTimestamp);
+				//printf("questTimestamp: %s = %llu = %lf\n", listExtraData[i][0].c_str(), (unsigned long long)questTimestamp, listAudioDataQuestTimestamp[listAudioDataQuestTimestamp.size()-1]);
 			} else {
 				return listTimestamp;
 			}
 			double recordedLength = listAudioRecordedLength[listAudioRecordedLength.size()-1];
 			double length = static_cast<double>(listDataLength[i] - audioHeaderSize) * (1000.0 / (nbChannels*4*audioSamplingRate)); //16 bits header, 1s = 1000 ms, 2 channels, 4 bytes, 48000 hz
+			//printf("length %lf = (%u-%d) * (1000.0 / (%d*4*%d))\n", length, listDataLength[i], audioHeaderSize, nbChannels, audioSamplingRate);
 			listAudioRecordedLength.push_back(recordedLength+length);
 			listAudioDataId.push_back(i);
 		} else if((Frame::PayloadType)listType[i] == Frame::PayloadType::AUDIO_SAMPLERATE) {
 			if(i < listExtraData.size() && listExtraData[i].size() > 0) {
-				std::istringstream(listExtraData[i][0]) >> audioSamplingRate;
+				int samplingRate;
+				std::istringstream(listExtraData[i][0]) >> samplingRate;
+				if(samplingRate != 0)
+					audioSamplingRate = samplingRate;
 				//printf("audio sample rate: %d\n", audioSamplingRate);
 			}
 		}
@@ -274,12 +281,12 @@ std::vector<uint64_t> rectifyTimestamps(const std::vector<uint64_t>& listTimesta
 			lastTimestamp += 23;
 	}
 
-	/*{
+	{
 		std::ofstream outputFile2("debugCmpTimestamp.csv");
 		for(size_t i = 0; i < listTimestamp.size(); i++)
 			//if((Frame::PayloadType)listType[i] == Frame::PayloadType::VIDEO_DATA)
 				outputFile2 << listTimestamp[i] << "," << listTimestamp2[i] << "\n";
-	}*/
+	}
 	//exit(0);
 	return listTimestamp2;
 }
